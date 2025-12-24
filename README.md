@@ -1,15 +1,20 @@
 # dripline
 
-To install dependencies:
+### Run the project locally:
 
 ```bash
 bun install
+bun start
 ```
 
-To run:
+# API usage analytics Gateway
+A lightweight API gateway made with Bun + TypeScript
+- authenticates API keys
+- enforces rate limits
+- tracks API usage
+- proxies requests to upstream services
 
-```bash
-bun run index.ts
-```
 
-This project was created using `bun init` in bun v1.3.5. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+
+
+
