@@ -1,15 +1,11 @@
 import { config } from "./config";
+import Elysia from "elysia";
 
 export function startServer() {
-  const server = Bun.serve({
-    port: config.PORT,
-    fetch(req) {
-      return new Response("API Gateway running", {
-        status: 200,
-      });
-    },
-  });
+  const app = new Elysia()
+    .listen(config.PORT);
 
-  console.log(`Gateway active on port ${server.port}`);
+  console.log(`Gateway active on port ${app.server?.port}`);
 }
+
 
