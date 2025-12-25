@@ -1,15 +1,14 @@
-interface requestContext {
-  requestID: string;
-  startTime: Date;
-  httpMethod: string;
-  path: string;
-  headers: string[];
-  queryParams: string[];
+export interface RequestContext {
+  requestId: string;
+  startTime: number;
+  req: Request;
   apiKey?: string;
   apiKeyId?: string;
   isTerminated: boolean;
   statusCode?: number;
   error?: string;
-  ratelimited?: boolean;
+  rateLimited?: boolean;
   latencyMs?: number;
 }
+
+export type Middleware = (ctx: RequestContext) => Promise<Response | void> | Response | void;
