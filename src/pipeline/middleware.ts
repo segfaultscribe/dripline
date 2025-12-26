@@ -6,7 +6,7 @@ export function registerMid(mw: Middleware) {
   middlewares.push(mw);
 }
 
-async function executePipeline(ctx: RequestContext): Promise<Response> {
+export async function executePipeline(ctx: RequestContext): Promise<Response> {
   for (const mw of middlewares) {
     const result = await mw(ctx);
 
@@ -16,7 +16,6 @@ async function executePipeline(ctx: RequestContext): Promise<Response> {
       return result;
     }
   }
-
-  return;
+  return new Response("OK");
   // return proxyRequest(ctx);
 }
