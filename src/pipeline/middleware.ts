@@ -2,7 +2,7 @@ import type { Middleware, RequestContext } from "../types";
 
 const middlewares: Middleware[] = [];
 
-export function registerMid(mw: Middleware) {
+export function use(mw: Middleware) {
   middlewares.push(mw);
 }
 
@@ -16,6 +16,6 @@ export async function executePipeline(ctx: RequestContext): Promise<Response> {
       return result;
     }
   }
-  return new Response("OK");
+  return new Response("Not implemented", { status: 500 });
   // return proxyRequest(ctx);
 }

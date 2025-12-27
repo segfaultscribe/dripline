@@ -1,24 +1,20 @@
 import { config } from "./config";
 import Elysia from "elysia";
 import type { RequestContext } from "./types";
-import { executePipeline } from "./pipeline/middleware";
+import { executePipeline, use } from "./pipeline/middleware";
+import { randomUUID } from "crypto";
+import { logger } from "./middleware/logger";
+
 export function startServer() {
+  use(logger);
   const app = new Elysia()
     .onRequest(({ request }) => {
-      const authHeader = request.headers.get("authorization");
-
-      const apiKey = authHeader && authHeader.startsWith("Bearer ")
-        ? authHeader.slice(7)
-        : undefined;
-
       const ctx: RequestContext = {
-        requestId: "1",
+        requestId: randomUUID(), // optimize using monotonic ULID later
         startTime: Date.now(),
         req: request,
-        apiKey,
         isTerminated: false,
-      }
-
+      };
       return executePipeline(ctx);
     })
     .listen(config.PORT);
