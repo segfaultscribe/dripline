@@ -1,4 +1,5 @@
 import type { Middleware, RequestContext } from "../types";
+import { proxyRequest } from "../proxy";
 
 const middlewares: Middleware[] = [];
 
@@ -16,6 +17,5 @@ export async function executePipeline(ctx: RequestContext): Promise<Response> {
       return result;
     }
   }
-  return new Response("Not implemented", { status: 500 });
-  // return proxyRequest(ctx);
+  return proxyRequest(ctx);
 }

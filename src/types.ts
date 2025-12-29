@@ -12,3 +12,14 @@ export interface RequestContext {
 }
 
 export type Middleware = (ctx: RequestContext) => Promise<Response | void> | Response | void;
+
+export interface UsageRecord {
+  apiKeyId?: string;
+  method: string;
+  path: string;
+  status: number;
+  timestamp: number;
+  latencyMs: number;
+}
+
+

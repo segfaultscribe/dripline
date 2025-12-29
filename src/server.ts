@@ -5,11 +5,12 @@ import { executePipeline, use } from "./pipeline/middleware";
 import { randomUUID } from "crypto";
 import { logger } from "./middleware/logger";
 import { auth } from "./middleware/auth";
-
+import { rateLimiter } from "./middleware/rateLimiter";
 
 export function startServer() {
   use(logger);
   use(auth);
+  use(rateLimiter);
   const app = new Elysia()
     .onRequest(({ request }) => {
       const ctx: RequestContext = {
