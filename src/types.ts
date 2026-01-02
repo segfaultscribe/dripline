@@ -11,7 +11,7 @@ export interface RequestContext {
   latencyMs?: number;
 }
 
-export type Middleware = (ctx: RequestContext) => Promise<Response | void> | Response | void;
+export type Middleware = (ctx: RequestContext) => Promise<Response | undefined> | Response | void;
 
 export interface UsageRecord {
   apiKeyId?: string;

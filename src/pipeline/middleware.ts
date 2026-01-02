@@ -1,5 +1,6 @@
 import type { Middleware, RequestContext } from "../types";
 import { proxyRequest } from "../proxy";
+import { analytics } from "../middleware/analytics";
 
 const middlewares: Middleware[] = [];
 
@@ -8,14 +9,23 @@ export function use(mw: Middleware) {
 }
 
 export async function executePipeline(ctx: RequestContext): Promise<Response> {
+  let res: Response | undefined;
+
   for (const mw of middlewares) {
     const result = await mw(ctx);
 
     if (result instanceof Response) {
       ctx.isTerminated = true;
-
-      return result;
+      res = result;
+      break;
     }
   }
-  return proxyRequest(ctx);
+
+  if (!res) {
+    res = await proxyRequest(ctx);
+  }
+
+  await analytics(ctx, res);
+
+  return res;
 }

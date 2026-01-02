@@ -6,7 +6,7 @@ export async function analytics(ctx: RequestContext, res: Response): Promise<voi
   const now = Date.now();
 
   const record: UsageRecord = {
-    apiKeyId: ctx.apiKeyId || ctx.apiKey,    // temp fallback
+    apiKeyId: ctx.apiKeyId || ctx.apiKey,
     method: ctx.req.method,
     path: new URL(ctx.req.url).pathname,
     status: res.status,
