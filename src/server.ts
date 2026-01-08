@@ -7,12 +7,23 @@ import { logger } from "./middleware/logger";
 import { auth } from "./middleware/auth";
 import { rateLimiter } from "./middleware/rateLimiter";
 
+
+const INTERNAL_ROUTES = new Set([
+  '/usage',
+  '/healthz',
+  '/metrics',
+]);
+
 export function startServer() {
   use(logger);
   use(auth);
   use(rateLimiter);
   const app = new Elysia()
     .onRequest(({ request }) => {
+      const pathname = new URL(request.url).pathname;
+
+      if (INTERNAL_ROUTES.has(pathname)) return;
+
       const ctx: RequestContext = {
         requestId: randomUUID(), // optimize using monotonic ULID later
         startTime: Date.now(),

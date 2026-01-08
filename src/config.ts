@@ -1,3 +1,3 @@
 export const config = {
-  PORT: Number(process.env.PORT ?? 5000),
+  PORT: Number(Bun.env.PORT ?? 5000),
 }

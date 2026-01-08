@@ -15,6 +15,7 @@ export type Middleware = (ctx: RequestContext) => Promise<Response | undefined> 
 
 export interface UsageRecord {
   apiKeyId?: string;
+  apiKey?: string;
   method: string;
   path: string;
   status: number;
