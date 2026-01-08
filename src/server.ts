@@ -43,10 +43,11 @@ export function startServer() {
     handleUsage,
     {
       query: t.Object({
-        apiKey: t.String(),
+        apikey: t.String(),
         limit: t.Optional(t.Number({
           minimum: 1,
           maximum: 100,
+          default: 5,
         }))
       })
     }
