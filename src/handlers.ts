@@ -22,21 +22,18 @@ export const handleUsage = async ({
 
   const { apikey, limit = 5 } = query;
   const result = [];
-  let count = 0;
 
-  for (let i = usage.length - 1; i >= 0 && count < limit; i--) {
+  for (let i = usage.length - 1; i >= 0 && result.length < limit; i--) {
     const entry = usage[i];
     if (!entry) continue;
 
-    if (entry.apiKey === apikey) {
-      result.push(entry);
-      count++;
-    }
+    if (apikey && entry.apiKey !== apikey) continue
+    result.push(entry);
   }
 
   set.status = 200;
   return {
-    count,
+    count: result.length,
     data: result,
   };
 };

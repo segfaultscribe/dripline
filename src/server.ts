@@ -7,10 +7,7 @@ import { logger } from "./middleware/logger";
 import { auth } from "./middleware/auth";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { t } from 'elysia';
-import { t } from "elysia";
 import { handleUsage } from "./handlers";
-import { handleUsage } from "./handlers";
-import { t } from "elysia";
 
 const INTERNAL_ROUTES = new Set([
   '/usage',
@@ -26,7 +23,10 @@ export function startServer() {
     .onRequest(({ request }) => {
       const pathname = new URL(request.url).pathname;
 
-      if (INTERNAL_ROUTES.has(pathname)) return;
+      if (INTERNAL_ROUTES.has(pathname)) {
+        // Internal route: bypass gateway pipeline
+        return;
+      }
 
       const ctx: RequestContext = {
         requestId: randomUUID(), // optimize using monotonic ULID later
@@ -36,22 +36,21 @@ export function startServer() {
       };
       return executePipeline(ctx);
     })
-    .listen(config.PORT);
-
-  app.get(
-    '/usage',
-    handleUsage,
-    {
-      query: t.Object({
-        apikey: t.String(),
-        limit: t.Optional(t.Number({
-          minimum: 1,
-          maximum: 100,
-          default: 5,
-        }))
-      })
-    }
-  )
+    .get(
+      '/usage',
+      handleUsage,
+      {
+        query: t.Object({
+          apikey: t.String(),
+          limit: t.Optional(t.Number({
+            minimum: 1,
+            maximum: 100,
+            default: 5,
+          }))
+        })
+      }
+    )
+    .listen(config.PORT)
 
   console.log(`Gateway active on port ${app.server?.port}`);
 }

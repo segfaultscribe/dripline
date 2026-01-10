@@ -8,7 +8,7 @@ export function use(mw: Middleware) {
   middlewares.push(mw);
 }
 
-export async function executePipeline(ctx: RequestContext): Promise<Response> {
+export async function executePipeline(ctx: RequestContext): Promise<Response | undefined> {
   let res: Response | undefined;
 
   for (const mw of middlewares) {

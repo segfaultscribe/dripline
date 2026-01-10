@@ -11,4 +11,5 @@ export async function logger(ctx: RequestContext) {
   const path = new URL(req.url).pathname;
 
   console.log(`[REQ ${reqId}] ${method} ${path}`);
+  return undefined;
 }
