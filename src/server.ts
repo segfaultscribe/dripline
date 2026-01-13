@@ -8,6 +8,7 @@ import { auth } from "./middleware/auth";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { t } from 'elysia';
 import { handleUsage } from "./handlers";
+import { migrate } from "./db/migrate";
 
 const INTERNAL_ROUTES = new Set([
   '/usage',
@@ -19,6 +20,7 @@ export function startServer() {
   use(logger);
   use(auth);
   use(rateLimiter);
+  migrate();
   const app = new Elysia()
     .onRequest(({ request }) => {
       const pathname = new URL(request.url).pathname;
