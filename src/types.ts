@@ -23,4 +23,17 @@ export interface UsageRecord {
   latencyMs: number;
 }
 
+export interface endUserCreationSchema {
+  external_user_id: string;
+  daily_request_limit: number;
+}
+
+export interface EndUser {
+  id: number;
+  external_user_id: string;
+  status: "active" | "revoked";
+  daily_request_limit: number;
+  created_at: string;
+  revoked_at: string | null;
+}
 
