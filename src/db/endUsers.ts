@@ -33,7 +33,7 @@ const retrieveEndUserByExternalId = db.prepare(
 
 const revokeUser = db.prepare(
   `
-    UPDATE end_users SET status = ?, revoked_at = ? WHERE id = ?
+    UPDATE end_users SET status = 'revoked', revoked_at = ? WHERE id = ? AND status = 'active'
   `
 )
 
@@ -68,6 +68,7 @@ function getEndUserById(id: string) {
       external_user_id: userRow.external_user_id,
       status: userRow.status,
       daily_request_limit: userRow.daily_request_limit,
+      revoked_at: userRow.revoked_at,
     }
   } catch (err: unknown) {
     if (err instanceof Error) {
@@ -87,6 +88,7 @@ function getEndUserByExternalId(id: string) {
       external_user_id: id,
       status: userRow.status,
       daily_request_limit: userRow.daily_request_limit,
+      revoked_at: userRow.revoked_at,
     }
   } catch (err: unknown) {
     if (err instanceof Error) {
@@ -98,12 +100,25 @@ function getEndUserByExternalId(id: string) {
 }
 
 function revokeEndUser(id: string) {
+  try {
+    revokeUser.run(
+      Date.now(),
+      id
+    )
+    return { id }
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error('Failed to revoke end user:', err.message);
+      throw new Error('Could not revoke end user');
+    }
+    throw err;
 
+  }
 }
 
 export {
   createEndUser,
   getEndUserById,
   getEndUserByExternalId,
-
+  revokeEndUser
 }

@@ -2,6 +2,9 @@ import db from "./index.ts";
 
 export function migrate() {
   try {
+    // NOTE: During early development, schemas are defined via CREATE TABLE.
+    // In later phases, changes should be applied via ALTER TABLE migrations
+
     db.run(`
       CREATE TABLE IF NOT EXISTS api_keys (
       id TEXT PRIMARY KEY,
