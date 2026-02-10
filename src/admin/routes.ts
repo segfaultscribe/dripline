@@ -9,10 +9,12 @@ import {
   getUserSummary
 } from "./service";
 
-import { adminAuth } from "./authMiddleware";
+import { adminAuth } from "./middlewares/auth";
+import { adminRateLimiter } from "./middlewares/rateLimiter";
 
 const adminRoutes = new Elysia({ prefix: '/admin' })
   .use(adminAuth)
+  .use(adminRateLimiter)
   .post(
     '/users',
     async ({ body, set }) => {

@@ -5,7 +5,7 @@ import { executePipeline, use } from "./pipeline/middleware";
 import { randomUUID } from "crypto";
 import { logger } from "./middleware/logger";
 import { auth } from "./middleware/auth";
-import { rateLimiter } from "./middleware/rateLimiter";
+import { gatewayRateLimiter } from "./middleware/rateLimiter";
 import { t } from 'elysia';
 import { handleUsage } from "./handlers";
 import { migrate } from "./db/migrate";
@@ -19,7 +19,7 @@ const INTERNAL_ROUTES = new Set([
 export function startServer() {
   use(logger);
   use(auth);
-  use(rateLimiter);
+  use(gatewayRateLimiter);
   migrate();
   const app = new Elysia()
     .onRequest(({ request }) => {

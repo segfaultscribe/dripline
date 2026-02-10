@@ -1,64 +1,78 @@
 import type { RequestContext } from "../types";
-//limit/client = 60 requests 
-//window = 60 seconds
+import { LIMIT, WINDOW_SEC } from "../constants/policy";
 
-interface rateValue {
+// rateLimitEngine.ts
+
+interface RateValue {
   count: number;
   windowStart: number;
 }
 
-const counterMap = new Map<string, rateValue>();
+const counterMap = new Map<string, RateValue>();
 
-// rate key format: `rate:<apiKey>:<method>:<path>`
-const limit = 60;
-
-
-export async function rateLimiter(ctx: RequestContext) {
-
-  let limitHit;
-  const path = new URL(ctx.req.url).pathname;
-  const rateKey = `rate:${ctx.apiKey}:${ctx.req.method}:${path}`
-  // gotta find the current window
-  const now = Math.floor(Date.now() / 1000);
-  const currentWindowStart = now - (now % 60);
-
-  const rv = counterMap.get(rateKey);
-  // IF Map entry exists
-  if (rv) {
-    // check if the current request is in the current window
-    if (rv.windowStart == currentWindowStart) {
-      limitHit = rv.count >= limit;
-    } else {
-      // if no update the current window of the request-
-      // and allow the request.
-      rv.windowStart = currentWindowStart;
-      rv.count = 1;
-      counterMap.set(rateKey, rv);
-    }
-    // check limits
-    if (limitHit) {
-      console.log(`[REQ ${ctx.requestId}] 429 Rate Limit exceeded for key ${ctx.apiKey} on ${ctx.req.method} ${path}`);
-      return new Response(
-        JSON.stringify({
-          error: "Rate Limit exceeded!"
-        }),
-        {
-          status: 429,
-          headers: { "Content-Type": "application/json" }
-        }
-      );
-    } else {
-      rv.count += 1;
-    }
-  } else {
-    // we do not have an entry in the Map
-    // so we make one lol
-    const rv: rateValue = {
-      count: 1,
-      windowStart: currentWindowStart
-    };
-    counterMap.set(rateKey, rv);
-  }
-  console.log("request accepted!");
+interface CheckRateLimitInput {
+  key: string;
+  limit: number;
+  windowSec: number;
 }
 
+export function checkRateLimit({
+  key,
+  limit,
+  windowSec
+}: CheckRateLimitInput): boolean {
+  const now = Math.floor(Date.now() / 1000);
+  const currentWindowStart = now - (now % windowSec);
+
+  const rv = counterMap.get(key);
+
+  if (!rv) {
+    counterMap.set(key, {
+      count: 1,
+      windowStart: currentWindowStart
+    });
+    return true;
+  }
+
+  // new window → reset
+  if (rv.windowStart !== currentWindowStart) {
+    rv.windowStart = currentWindowStart;
+    rv.count = 1;
+    return true;
+  }
+
+  // same window → check limit
+  if (rv.count >= limit) {
+    return false;
+  }
+
+  rv.count += 1;
+  return true;
+}
+
+
+export async function gatewayRateLimiter(ctx: RequestContext) {
+  const path = new URL(ctx.req.url).pathname;
+
+  const rateKey = `gateway:${ctx.apiKey}:${ctx.req.method}:${path}`;
+
+  const allowed = checkRateLimit({
+    key: rateKey,
+    limit: LIMIT,
+    windowSec: WINDOW_SEC
+  });
+
+  if (!allowed) {
+    console.log(
+      `[REQ ${ctx.requestId}] 429 Rate limit exceeded for apiKey=${ctx.apiKey} ${ctx.req.method} ${path}`
+    );
+
+    return new Response(
+      JSON.stringify({ error: "Rate limit exceeded" }),
+      {
+        status: 429,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+  }
+}
