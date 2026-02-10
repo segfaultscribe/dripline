@@ -1,10 +1,4 @@
 import { Elysia, t } from "elysia";
-// import {
-//   createUserHandler,
-//   createApiKeyHandler,
-//   revokeUserHandler,
-//   getUserSummaryHandler,
-// } from "./handlers";
 
 import {
   createEndUser,
@@ -21,13 +15,13 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
   .use(adminAuth)
   .post(
     '/users',
-    ({ body, set }) => {
+    async ({ body, set }) => {
       const {
         externalUserId,
         dailyRequestLimit,
       } = body;
       try {
-        const creationResult = createEndUser(externalUserId, dailyRequestLimit);
+        const creationResult = await createEndUser(externalUserId, dailyRequestLimit);
         return creationResult
       } catch (err: unknown) {
         if (err instanceof DuplicateExternalUserError) {
@@ -50,11 +44,11 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
   )
   .post(
     '/users/:id/keys',
-    ({ params: { id }, set, body }) => {
+    async ({ params: { id }, set, body }) => {
       // verify the user with the id exists
       const keyName = body.name;
       try {
-        const keyCreationResult = createUserApiKey(id, keyName);
+        const keyCreationResult = await createUserApiKey(id, keyName);
         return keyCreationResult ;
       } catch (err: unknown) {
         if (err instanceof UserNotFoundError) {
@@ -79,9 +73,9 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
   )
   .post(
     '/users/:id/revoke',
-    ({ params: { id }, set }) => {
+    async ({ params: { id }, set }) => {
       try {
-        const revokeResult = revokeUser(id);
+        const revokeResult = await revokeUser(id);
         return { success: true, data: revokeResult };
       } catch (err: unknown) {
         if (err instanceof UserNotFoundError) {
@@ -101,9 +95,9 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
   )
   .get(
     '/users/:id',
-    ({ params: { id }, set }) => {
+    async ({ params: { id }, set }) => {
       try {
-        const result = getUserSummary(id);
+        const result = await getUserSummary(id);
         return result;
       } catch (err: unknown) {
         if (err instanceof UserNotFoundError) {

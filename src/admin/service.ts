@@ -62,7 +62,7 @@ const getUserInfoStmt = db.prepare<UserSummary, [string]>(
   `
 )
 
-function createEndUser(externalUserId: string, dailyRequestLimit: number) {
+async function createEndUser(externalUserId: string, dailyRequestLimit: number) {
   const id = randomUUID();
   const createdAt = Date.now();
 
@@ -83,14 +83,14 @@ function createEndUser(externalUserId: string, dailyRequestLimit: number) {
   }
 }
 
-function checkUserExists(id: string) {
+async function checkUserExists(id: string) {
   const row = checkUserExistsStmt.get(id);
   if (!row) {
     throw new UserNotFoundError(id);
   }
 }
 
-function createUserApiKey(id: string, name: string) {
+async function createUserApiKey(id: string, name: string) {
   checkUserExists(id);
   //now create the api key
   try {
@@ -105,9 +105,9 @@ function createUserApiKey(id: string, name: string) {
   }
 }
 
-function revokeUser(id: string) {
+async function revokeUser(id: string) {
   // Throws if user doesn't exist
-  checkUserExists(id);
+  await checkUserExists(id);
 
   // Revoke user
   updateEndUserStatusStmt.run('revoked', id);
@@ -133,8 +133,7 @@ function revokeUser(id: string) {
   };
 }
 
-function getUserSummary(id: string) {
-  // checkUserExists(id);
+async function getUserSummary(id: string) {
 
   // gather info
   const userSummary = getUserInfoStmt.get(id);
