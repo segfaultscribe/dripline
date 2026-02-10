@@ -1,10 +1,10 @@
 import { Elysia, t } from "elysia";
-import {
-  createUserHandler,
-  createApiKeyHandler,
-  revokeUserHandler,
-  getUserSummaryHandler,
-} from "./handlers";
+// import {
+//   createUserHandler,
+//   createApiKeyHandler,
+//   revokeUserHandler,
+//   getUserSummaryHandler,
+// } from "./handlers";
 
 import {
   createEndUser,
@@ -28,7 +28,7 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
       } = body;
       try {
         const creationResult = createEndUser(externalUserId, dailyRequestLimit);
-        return { creationResult }
+        return creationResult
       } catch (err: unknown) {
         if (err instanceof DuplicateExternalUserError) {
           set.status = 409;
@@ -36,7 +36,7 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
             error: err.message,
           };
         }
-        console.error('Unexpected error creating API key:', err);
+        console.error('Unexpected error creating User:', err);
         set.status = 500;
         return { error: 'Internal server error' };
       }
@@ -55,7 +55,7 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
       const keyName = body.name;
       try {
         const keyCreationResult = createUserApiKey(id, keyName);
-        return { keyCreationResult };
+        return keyCreationResult ;
       } catch (err: unknown) {
         if (err instanceof UserNotFoundError) {
           set.status = 404;
@@ -68,7 +68,10 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
         return { error: 'Internal server error' };
       }
     },
-    {
+    { 
+      params: t.Object({
+        id: t.String({ minLength: 1 })
+      }),
       body: t.Object({
         name: t.String({ minLength: 1 })
       })
@@ -89,9 +92,36 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
         set.status = 500;
         return { error: 'Internal server error' };
       }
+    },
+    {
+      params: t.Object({
+        id: t.String({ minLength: 1 })
+      })
     }
   )
   .get(
     '/users/:id',
-    getUserSummaryHandler,
+    ({ params: { id }, set }) => {
+      try {
+        const result = getUserSummary(id);
+        return result;
+      } catch (err: unknown) {
+        if (err instanceof UserNotFoundError) {
+          set.status = 404;
+          return { error: 'User not found' };
+        }
+        console.error(`Error retrieving user summary: ${err}`);
+        set.status = 500;
+        return { error: 'Internal server error' };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String({ minLength: 1 })
+      }),
+    }
   )
+
+export {
+  adminRoutes,
+}
