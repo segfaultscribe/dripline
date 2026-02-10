@@ -17,6 +17,13 @@ class UserNotFoundError extends Error {
   }
 }
 
+interface UserSummary {
+  external_user_id: string;
+  status: string;
+  daily_request_limit: number;
+  revoked_at: number;
+}
+
 const createUserStmt = db.prepare(
   `
     INSERT INTO end_users (
@@ -39,7 +46,19 @@ const checkUserExistsStmt = db.prepare(
 
 const updateEndUserStatusStmt = db.prepare(
   `
-  UPDATE end_users SET status=? WHERE id=?
+  UPDATE end_users SET status=? WHERE id=?, status='active'
+  `
+)
+
+const updateEndUserRevokedAtStmt = db.prepare(
+  `
+  UPDATE end_users SET revoked_at=? WHERE id=?
+  `
+)
+
+const getUserInfoStmt = db.prepare<UserSummary, [string]>(
+  `
+  SELECT external_user_id, daily_request_limit, status, revoked_at FROM end_users WHERE id=?
   `
 )
 
@@ -87,33 +106,55 @@ function createUserApiKey(id: string, name: string) {
 }
 
 function revokeUser(id: string) {
+  // Throws if user doesn't exist
   checkUserExists(id);
-  let revokedKeyCount = 0;
-  const revokeResult = updateEndUserStatusStmt.run('revoked', id);
 
-  const allKeys = getAllAPIKeys(id) || [];
-  if (allKeys) {
-    allKeys.forEach((item) => {
-      const { changes } = updateAPIKey('revoked', item.keyId)
-      if (changes > 0) {
-        revokedKeyCount++;
-      }
-    })
+  // Revoke user
+  updateEndUserStatusStmt.run('revoked', id);
+  updateEndUserRevokedAtStmt.run(Date.now(), id);
+
+  // Revoke all keys
+  const allKeys = getAllAPIKeys(id) as Array<{ keyId: string }>;
+  let revokedKeyCount = 0;
+
+  for (const key of allKeys) {
+    const { changes } = updateAPIKey(key.keyId, 'revoked');
+    if (changes > 0) {
+      revokedKeyCount++;
+    }
   }
+
   return {
     userId: id,
     status: 'revoked',
-    TotalAPIKeyCount: allKeys.length,
-    RevokedAPIKeyCount: revokedKeyCount,
+    totalKeys: allKeys.length,
+    revokedKeys: revokedKeyCount,
     fullyRevoked: revokedKeyCount === allKeys.length,
+  };
+}
+
+function getUserSummary(id: string) {
+  // checkUserExists(id);
+
+  // gather info
+  const userSummary = getUserInfoStmt.get(id);
+
+  if (!userSummary) {
+    throw new UserNotFoundError(id);
+  }
+
+  return {
+    id,
+    ...userSummary
   }
 }
 
-// fucntions
 export {
   createEndUser,
   checkUserExists,
   createUserApiKey,
+  revokeUser,
+  getUserSummary,
 }
 
 // errors

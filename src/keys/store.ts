@@ -70,13 +70,10 @@ function createApiKeyEntry(
 
 //NOTE: this function returns only the API Key ids
 function getAllAPIKeys(external_user_id: string) {
-  // need to retrive all API Keys with external id
-  const result = getAllAPIKeysStmt.all(external_user_id);
-  return result;
+  return getAllAPIKeysStmt.all(external_user_id);
 }
 
 function updateAPIKey(id: string, status: string) {
-  // update status of API key
   return updateAPIKeyStmt.run(status, id);
 }
 

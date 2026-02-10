@@ -1,63 +1,91 @@
-import { createEndUser, DuplicateExternalUserError, checkUserExists, createUserApiKey } from "./service";
+import {
+  createEndUser,
+  DuplicateExternalUserError,
+  UserNotFoundError,
+  createUserApiKey,
+  revokeUser,
+  getUserSummary
+} from "./service";
 
-class UserNotFoundError extends Error {
-  constructor(userId: string) {
-    super(`User not found: ${userId}`);
-    this.name = 'UserNotFoundError';
-  }
-}
+import type { Handler } from '../types.ts';
 
-function createUserHandler({ headers, body, set }) {
-  // parse the body for service
-  const {
-    externalUserId,
-    dailyRequestLimit,
-  } = body;
+// const createUserHandler: Handler = ({ headers, body, set }) => {
+//   // parse the body for service
+//   const {
+//     externalUserId,
+//     dailyRequestLimit,
+//   } = body;
+//
+//   // call create end user service
+//   try {
+//     const creationResult = createEndUser(externalUserId, dailyRequestLimit);
+//     return { creationResult }
+//   } catch (err: unknown) {
+//     if (err instanceof DuplicateExternalUserError) {
+//       set.status = 409;
+//       return {
+//         error: err.message,
+//       };
+//     }
+//     console.error('Unexpected error creating API key:', err);
+//     set.status = 500;
+//     return { error: 'Internal server error' };
+//   }
+// }
 
-  // call create end user service
+// function createApiKeyHandler({ params: { id }, set, body }) {
+//   // verify the user with the id exists
+//   const keyName = body.name;
+//   try {
+//     const keyCreationResult = createUserApiKey(id, keyName);
+//     return { keyCreationResult };
+//   } catch (err: unknown) {
+//     if (err instanceof UserNotFoundError) {
+//       set.status = 404;
+//       return {
+//         error: err.message
+//       };
+//     }
+//     console.error('Unexpected error creating API key:', err);
+//     set.status = 500;
+//     return { error: 'Internal server error' };
+//   }
+// }
+
+// function revokeUserHandler({ params: { id }, set }) {
+//   try {
+//     const revokeResult = revokeUser(id);
+//     return { success: true, data: revokeResult };
+//   } catch (err: unknown) {
+//     if (err instanceof UserNotFoundError) {
+//       set.status = 404;
+//       return { error: 'User not found' };
+//     }
+//
+//     console.error(`Revoking user failed! ERROR: ${err instanceof Error ? err.message : String(err)}`);
+//     set.status = 500;
+//     return { error: 'Internal server error' };
+//   }
+// }
+
+function getUserSummaryHandler({ params: { id }, set }) {
   try {
-    const creationResult = createEndUser(externalUserId, dailyRequestLimit);
-    return { creationResult }
-  } catch (err: unknown) {
-    if (err instanceof DuplicateExternalUserError) {
-      set.status = 409;
-      return {
-        error: err.message,
-      };
-    }
-    console.error('Unexpected error creating API key:', err);
-    set.status = 500;
-    return { error: 'Internal server error' };
-  }
-}
-
-function createApiKeyHandler({ params: { id }, set, body }) {
-  // verify the user with the id exists
-  const keyName = body.name;
-  try {
-    const keyCreationResult = createUserApiKey(id, keyName);
-    return { keyCreationResult };
+    const result = getUserSummary(id);
+    return result;
   } catch (err: unknown) {
     if (err instanceof UserNotFoundError) {
       set.status = 404;
-      return {
-        error: err.message
-      };
+      return { error: 'User not found' };
     }
-    console.error('Unexpected error creating API key:', err);
+    console.error(`Error retrieving user summary: ${err}`);
     set.status = 500;
     return { error: 'Internal server error' };
   }
-}
-
-function revokeUserHandler({ params: { id }, set, body }) {
-  // revoke the user and all their API Keys haha
-  // PIPELINE: identify user -> revoke user
-  const revokeResult = revokeUser(id);
-
 }
 
 export {
   createUserHandler,
   createApiKeyHandler,
+  revokeUserHandler,
+  getUserSummaryHandler,
 }

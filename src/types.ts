@@ -1,4 +1,7 @@
-export interface RequestContext {
+import type { Context } from "elysia";
+
+// --------------- INTERFACES --------------------
+interface RequestContext {
   requestId: string;
   startTime: number;
   req: Request;
@@ -11,9 +14,7 @@ export interface RequestContext {
   latencyMs?: number;
 }
 
-export type Middleware = (ctx: RequestContext) => Promise<Response | undefined> | Response;
-
-export interface UsageRecord {
+interface UsageRecord {
   apiKeyId?: string;
   apiKey?: string;
   method: string;
@@ -23,12 +24,12 @@ export interface UsageRecord {
   latencyMs: number;
 }
 
-export interface endUserCreationSchema {
+interface endUserCreationSchema {
   external_user_id: string;
   daily_request_limit: number;
 }
 
-export interface EndUser {
+interface EndUser {
   id: number;
   external_user_id: string;
   status: "active" | "revoked";
@@ -37,3 +38,23 @@ export interface EndUser {
   revoked_at: string | null;
 }
 
+// --------------- TYPES --------------------
+type Middleware = (ctx: RequestContext) => Promise<Response | undefined> | Response;
+
+type Handler = (ctx: Context) => {}
+
+// --------------- EXPORTS --------------------
+
+// Interfaces
+export type {
+  RequestContext,
+  UsageRecord,
+  endUserCreationSchema,
+  EndUser
+}
+
+// types
+export type {
+  Middleware,
+  Handler
+}
