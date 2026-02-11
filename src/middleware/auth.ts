@@ -39,6 +39,7 @@ export async function auth(ctx: RequestContext): Promise<Response | undefined> {
 
     //Attach identity
     ctx.apiKeyId = entry.id;
+    ctx.endUserId = entry.end_user_id;
     return undefined;
   } catch (err) {
     console.error(`[REQ ${requestId}] Auth failure`, err);

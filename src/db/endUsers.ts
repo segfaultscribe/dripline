@@ -37,6 +37,12 @@ const revokeUser = db.prepare(
   `
 )
 
+const getDailyRequestLimitStmt = db.prepare<{ daily_request_limit: number }, [string]>(
+  `
+  SELECT daily_request_limit from end_users WHERE id=?
+  `
+)
+
 function createEndUser(input: endUserCreationSchema): { id: string } {
   const { external_user_id, daily_request_limit } = input;
   const now = Date.now();
@@ -116,9 +122,15 @@ function revokeEndUser(id: string) {
   }
 }
 
+function getDailyRequestLimit(endUserId: string): number | undefined {
+  const row = getDailyRequestLimitStmt.get(endUserId);
+  return row?.daily_request_limit ?? undefined
+}
+
 export {
   createEndUser,
   getEndUserById,
   getEndUserByExternalId,
-  revokeEndUser
+  revokeEndUser,
+  getDailyRequestLimit
 }

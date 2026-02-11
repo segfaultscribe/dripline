@@ -32,6 +32,15 @@ export function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_end_users_external_id
       ON end_users (external_user_id);
     `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS usage_counters (
+        end_user_id TEXT NOT NULL,
+        window_start INTEGER NOT NULL,
+        count INTEGER NOT NULL,
+        PRIMARY KEY (end_user_id, window_start) 
+      );
+    `) // composite key for uniqueness and fast lookup
     console.log("DB migration succesful!");
   } catch (err) {
     console.error("DB migration failed!", err);

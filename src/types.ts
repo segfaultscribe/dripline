@@ -7,7 +7,10 @@ interface RequestContext {
   req: Request;
   apiKey?: string;
   apiKeyId?: string;
+  endUserId?: string;
   isTerminated: boolean;
+  isMetered: boolean;
+  usageDelta?: number;
   statusCode?: number;
   error?: string;
   rateLimited?: boolean;

@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 import { logger } from "./middleware/logger";
 import { auth } from "./middleware/auth";
 import { gatewayRateLimiter } from "./middleware/rateLimiter";
+import { meter } from "./middleware/metering";
 import { t } from 'elysia';
 import { handleUsage } from "./handlers";
 import { migrate } from "./db/migrate";
@@ -20,6 +21,7 @@ export function startServer() {
   use(logger);
   use(auth);
   use(gatewayRateLimiter);
+  use(meter);
   migrate();
   const app = new Elysia()
     .onRequest(({ request }) => {
@@ -35,6 +37,7 @@ export function startServer() {
         startTime: Date.now(),
         req: request,
         isTerminated: false,
+        isMetered: false,
       };
       return executePipeline(ctx);
     })
