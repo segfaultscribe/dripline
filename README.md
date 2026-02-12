@@ -1,221 +1,164 @@
+**Dripline: API Usage Analytics & Hard Limits for LLM-Powered SaaS**
 
-# API Usage Analytics & Rate Limiting Gateway (Bun + TypeScript)
-**DEVELOPMENT: PHASE 1**
+> NOTE: Dripline has been recently upgraded from a generic gateway to a gateway focused on usage enforcement for AI SaaS
 
-> A lightweight, production-minded API gateway that enforces API key authentication, rate limits traffic, and records usage analytics built with **Bun** and **TypeScript**, designed to evolve cleanly from MVP to production.
+Dripline is a reverse-proxy API gateway designed specifically for AI-powered SaaS applications that incur usage-based LLM costs. It sits in front of cost-incurring endpoints, attributes usage per end user, and enforces hard limits before upstream calls are made — preventing surprise bills, abuse, and runaway usage.
 
-This project is being built with proper development practices in mind. It's not a get it out there asap project although the development process understands the importance getting a working product out. This is the main objective of the development process where in the first phase the absolute bare minimum has been done with trade off consideration in mind to get the product working fully. 
+This is not a generic API gateway. It is an opinionated cost-control layer for teams shipping AI products.
 
-The following phases of development will upgrade upon this working skeleton to introduce features and tools that'll make this a production ready tool.
-## Use case
-Most early-stage startups expose APIs but lack:
-- visibility into usage
-- protection against abuse
-- simple quota enforcement
-- operational insight into request behavior
+## Why dripline Exists
 
-This project is a **drop-in gateway** that sits in front of an existing API and provides:
-- API key authentication
-- per-key, per-endpoint rate limiting
-- request-level usage analytics
-- internal admin observability endpoints
+LLM APIs are expensive and usage scales unpredictably. A single abusive user, infinite loop, or integration bug can cause sudden cost spikes.
 
-It is intentionally scoped, **not a full API gateway** like Envoy or Kong.
-## What This Is (and Is Not)
-### This **is**
-- A gateway-shaped **control and observability layer**
-- Path-agnostic request pipeline
-- Middleware-driven architecture
-- Suitable for early-stage startups and internal tools
+Traditional API gateways focus on:
+* Latency
+* Throughput
+* Generic rate limiting
 
-### ❌ This is **not**
-- A routing platform
-- A service mesh
-- A plugin-based gateway framework
-- A business-logic API server
+Dripline focuses on:
+* **Per-user usage attribution**
+* **Deterministic daily usage limits**
+* **Blocking requests before cost is incurred**
+* **Clear operational control for founders**
 
-> The goal is **clarity, correctness, and evolution**, not feature maximalism.
+The primary goal is cost predictability.
 
-## High-Level Architecture
+## Architecture Overview
 
-```
-Client → Gateway → Upstream API
-         │
-         ├─ Log request
-         ├─ Check API key
-         ├─ Check rate limit
-         ├─ Proxy request
-         └─ Record analytics
-```
+dripline is built as a reverse proxy with a strict middleware pipeline and a clear separation between:
 
-All client requests pass through a **single request pipeline**.  
-Internal gateway endpoints bypass the pipeline.
+* **Data plane** – handles customer traffic and enforcement
+* **Control plane** – admin APIs for user and key management
 
-## Core Features
-### 🔐 API Key Authentication
-- Keys extracted from:
-    - `Authorization: Bearer <key>`
-    - `X-API-Key`
-- Missing keys rejected early (`401`)
-- Identity propagated through request context
-### 🚦 Rate Limiting
-- Fixed-window rate limiting (MVP)
-- Scoped by:
-    `apiKey + HTTP method + path`
-- Enforced before request forwarding
-- Deterministic, debuggable behavior
+### Request Flow
 
-### 📊 Usage Analytics
-For every request (allowed or denied), records:
-- API key
-- method
-- path
-- status code
-- latency
-- timestamp
+1. Request enters the gateway.
+2. A `RequestContext` is created.
+3. Authentication resolves the API key to an internal end-user identity.
+4. Metering classifies whether the endpoint is cost-incurring.
+5. Usage enforcement checks persisted counters against configured limits.
+6. If allowed, the request is proxied upstream.
+7. Usage counters are finalized and persisted.
 
-Analytics are recorded **after** response determination to ensure correctness.
-### 🛠 Internal Admin Endpoint
-- `GET /usage`
-- Protected by `X-Admin-Key`
-- Inspect recent usage events
-- Optional filtering and limits
+If a limit would be exceeded, the gateway returns a 429 response and the upstream is never called.
 
-## Project Structure
+This guarantees cost protection before LLM execution.
 
-```
-src/
-├── config.ts           # Config
-├── server.ts           # Server + pipeline setup
-├── proxy.ts            # Upstream proxy (stubbed)
-├── handlers.ts         # Admin handlers
-├── types.ts            # Types
-├── pipeline/
-│   └── middleware.ts   # Pipeline executor
-└── middleware/
-    ├── logger.ts
-    ├── auth.ts
-    ├── rateLimiter.ts
-    └── analytics.ts
-```
+## Core Features (MVP)
 
-This structure separates:
+### Per-End-User Identity
 
-- **request lifecycle**
-- **cross-cutting concerns**
-- **internal vs external behavior**
+* Each API key maps to an internal end user.
+* Limits are enforced per end user, not globally.
+* Revoking a user revokes all associated keys.
 
-## Design Philosophy & Intentional Tradeoffs
+### Metered Endpoint Protection
 
-This project deliberately starts with **simple, explicit implementations**.
-### Logging
-**Current**
-- `console.log`
-- human-readable logs
-**Why**
-- Zero dependencies
-- Easy local debugging
-- No opinionated logging format too early
-**Production Path**(next phase)
-- Replace with structured logger (Pino/Winston)
-- Add log levels
-- Emit JSON logs for aggregation
-### Rate Limiting
-**Current**
-- Fixed window
-- In-memory counters
-- Single-instance safe
-**Why**
-- Easy to reason about
-- Deterministic behavior
-- Excellent for MVP validation
-**Production Path**(next phase)
-- Sliding window or token bucket
-- Redis-backed counters
-- Distributed enforcement
-- Configurable per plan
-### Analytics Storage
-**Current**
-- In-memory array
-- Synchronous writes
-**Why**
-- Simplest correctness-first approach
-- Clear event model
-- No premature persistence decisions
-**Production Path**(next phase)
-- Async ingestion
-- Database persistence (Postgres)
-- Batched writes
-- Time-based retention
-### Proxying
-**Current**
-- Stubbed response
-**Why**
-- Focus on gateway logic first
-- Avoid mixing proxy complexity too early
+* Only explicitly configured path prefixes (e.g. `/ai/*`) are considered cost-incurring.
+* Non-metered endpoints pass through normally.
+* Metering is explicit and deterministic.
 
-**Production Path**
-- Full upstream forwarding
-- Timeout handling
-- Header allow/deny lists
-- Retry strategy (optional)
-## Request Lifecycle (Concrete)
-1. Request arrives at gateway
-2. Request context is created
-3. Middleware pipeline executes:
-    - logging
-    - auth
-    - rate limiting
-4. Request is either:
-    - rejected early
-    - forwarded to upstream
-5. Response is returned
-6. Analytics are recorded
-7. Context is discarded
+### Daily Hard Usage Limits
 
-> One request = one context = one analytics record
-## Configuration
-Environment variables:
-`PORT=3000 ADMIN_KEY=dev-admin-key`
-## Running Locally
-`bun install bun run src/index.ts`
-Test:
-`curl -H "Authorization: Bearer testkey" http://localhost:3000/v1/test curl -H "X-Admin-Key: dev-admin-key" http://localhost:3000/usage`
+* Fixed UTC daily window.
+* One usage unit per metered request (v1).
+* Synchronous enforcement before proxying.
+* Persistent counters survive restarts.
 
-## Roadmap: From MVP → Production
-This system is designed to evolve with less rewrites.
-### Phase 1 (Current)
-- In-memory rate limiting
-- In-memory analytics
-- Single instance
-- Console logging
-### Phase 2
-- SQLite / Postgres persistence
-- API key table
-- Usage event table
-- Indexing strategy
-### Phase 3
-- Redis-backed rate limiting
-- Sliding window / token bucket
-- Per-plan quotas
-### Phase 4
-- Async analytics ingestion
-- Aggregation endpoints
-- Metrics export
-### Phase 5
-- Full upstream proxying
-- Header sanitization
-- Observability polish
-## Development Practices
-This project demonstrates:
-- API platform thinking
-- middleware architecture
-- request lifecycle control
-- operational awareness
-- intentional tradeoff decisions
-It is a **systems-oriented backend tool**.
+### Usage Persistence
 
-## Note
-This gateway has been made intentionally boring in the right places and explicit everywhere else. That is by design.
+* Composite primary key `(end_user_id, window_start)`
+* Atomic upsert-based increments
+* Restart-safe and deterministic
+
+### Admin Control Plane
+
+* Create end users
+* Issue API keys
+* Revoke users (hard stop)
+* Inspect configured limits
+
+## Design Decisions & Tradeoffs
+
+### Reverse Proxy Model
+
+Enforcement must happen before LLM execution. SDK-based tracking or log-based analysis is reactive and unsafe for cost control. A reverse proxy guarantees pre-execution enforcement.
+
+### Synchronous Enforcement
+
+Authentication and limit checks are synchronous. This slightly increases latency but guarantees deterministic cost protection. Availability is intentionally traded for correctness.
+
+### Internal vs External User IDs
+
+External customer user IDs are stored for mapping only. All enforcement and counters use internal UUIDs to ensure referential integrity and system independence.
+
+### Fixed Daily Windows (MVP)
+
+A simple UTC daily window was chosen over rolling or sliding windows for:
+
+* Simplicity
+* Predictability
+* Lower operational complexity
+
+This can evolve to rolling or weighted limits later.
+
+### No Token Counting (Yet)
+
+V1 meters per request, not per token. This avoids deep LLM parsing and keeps enforcement fast. Token-weighted usage can be introduced later without breaking the core model.
+
+### No Dynamic Route Configuration (Yet)
+
+Metered endpoints are currently path-prefix based and configured at runtime. Future versions will allow admin-configurable metered routes loaded into memory without per-request DB lookups.
+
+## Failure & Safety Model
+
+* If the database is unavailable → requests fail closed.
+* If enforcement fails → request is blocked.
+* If the process crashes before proxy → no cost incurred.
+* If it crashes after proxy → acceptable undercount (rare edge case).
+
+Correctness is prioritized over availability.
+
+## What This Is Not
+
+dripline is not:
+
+* A Kong or NGINX replacement
+* A multi-protocol API manager
+* An enterprise gateway with plugins and SSO
+* A billing system
+
+It is a focused cost-control gateway for AI SaaS teams.
+
+## MVP Goals
+
+The MVP guarantees:
+
+* A user cannot exceed their configured daily request limit.
+* Over-limit requests are blocked before LLM execution.
+* Usage persists across restarts.
+* Founders can control and revoke users immediately.
+
+Future work includes:
+
+* Token-based metering
+* Configurable metered routes
+* Aggregated usage analytics endpoints
+* Async write optimization
+* Redis-backed distributed enforcement
 
 
+## Tech Stack
+
+* Bun
+* TypeScript
+* Elysia
+* SQLite (Postgres-ready)
+* Structured middleware pipeline
+* Reverse proxy forwarding
+
+## Project Status
+
+MVP in active development.
+Core enforcement engine implemented.
+Focus: deterministic cost protection for AI-powered SaaS.
