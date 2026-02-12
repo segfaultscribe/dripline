@@ -1,10 +1,10 @@
 import type { RequestContext } from "../types";
 import { getCurrentWindowStart } from "./helpers/window"; 
-import { getUsageCount, tryConsumeUsage } from "../db/usageCounter";
+import { tryConsumeUsage } from "../db/usageCounter";
 import { getDailyRequestLimit } from "../db/endUsers";
 
 
-async function usageEnforcement(ctx: RequestContext){
+function usageEnforcement(ctx: RequestContext){
     const isMetered = ctx.isMetered;
     if(!isMetered) return;
     const endUserId = ctx.endUserId;
@@ -22,8 +22,8 @@ async function usageEnforcement(ctx: RequestContext){
 
     if(dailyRequestLimit === undefined){
         return new Response(
-            JSON.stringify({error: "Usage limit exceeded"}),
-            {status: 429, headers: {"Content-Type": "application/json"}}
+            JSON.stringify({error: "Usage limit not configured"}),
+            {status:500, headers: {"Content-Type": "application/json"}}
         );
     }  
 
@@ -34,7 +34,6 @@ async function usageEnforcement(ctx: RequestContext){
             {status: 429, headers: {"Content-Type": "application/json"}}
         );
     }
-    ctx.usageDelta = 1;
     return undefined;
 }
 

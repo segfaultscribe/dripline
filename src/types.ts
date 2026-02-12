@@ -42,7 +42,7 @@ interface EndUser {
 }
 
 // --------------- TYPES --------------------
-type Middleware = (ctx: RequestContext) => Promise<Response | undefined> | Response;
+type Middleware = (ctx: RequestContext) => Promise<Response | undefined> | Response | undefined;
 
 type Handler = (ctx: Context) => {}
 

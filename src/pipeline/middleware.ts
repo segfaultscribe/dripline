@@ -1,8 +1,6 @@
 import type { Middleware, RequestContext } from "../types";
 import { proxyRequest } from "../proxy";
 import { analytics } from "../middleware/analytics";
-import { incrementUsageCount } from "../db/usageCounter";
-import { getCurrentWindowStart } from "../middleware/helpers/window";
 
 const middlewares: Middleware[] = [];
 
@@ -27,9 +25,9 @@ export async function executePipeline(ctx: RequestContext): Promise<Response | u
     res = await proxyRequest(ctx);
   }
 
-  if(ctx.isMetered && ctx.usageDelta && ctx.endUserId){
-    incrementUsageCount(ctx.endUserId, getCurrentWindowStart())
-  }
+  // if(ctx.isMetered && ctx.usageDelta && ctx.endUserId){
+  //   incrementUsageCount(ctx.endUserId, getCurrentWindowStart())
+  // } deprecated: now increment happens BEFORE proxy using transaction
 
   await analytics(ctx, res);
 

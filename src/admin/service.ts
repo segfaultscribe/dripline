@@ -1,7 +1,9 @@
 import db from "../db"
 import { randomUUID } from "crypto";
 import { createApiKeyEntry, getAllAPIKeys, updateAPIKey } from "../keys/store";
-
+import { getCurrentWindowStart } from "../middleware/helpers/window";
+import { getUsageCount } from "../db/usageCounter";
+import { getDailyRequestLimit } from "../db/endUsers";
 
 class DuplicateExternalUserError extends Error {
   constructor(externalUserId: string) {
@@ -22,6 +24,11 @@ interface UserSummary {
   status: string;
   daily_request_limit: number;
   revoked_at: number;
+}
+
+interface UsageDataDuo {
+  external_user_id: string;
+  daily_request_limit: number;
 }
 
 const createUserStmt = db.prepare(
@@ -46,7 +53,7 @@ const checkUserExistsStmt = db.prepare(
 
 const updateEndUserStatusStmt = db.prepare(
   `
-  UPDATE end_users SET status=? WHERE id=?, status='active'
+  UPDATE end_users SET status=? WHERE id=? AND status='active'
   `
 )
 
@@ -59,6 +66,12 @@ const updateEndUserRevokedAtStmt = db.prepare(
 const getUserInfoStmt = db.prepare<UserSummary, [string]>(
   `
   SELECT external_user_id, daily_request_limit, status, revoked_at FROM end_users WHERE id=?
+  `
+)
+
+const getExtIdLimitStmt = db.prepare<UsageDataDuo, [string]>(
+  `
+  SELECT external_user_id, daily_request_limit FROM end_users WHERE id=?
   `
 )
 
@@ -148,12 +161,32 @@ async function getUserSummary(id: string) {
   }
 }
 
+async function getUserUsageSummary(userId: string){
+  const windowStart = getCurrentWindowStart();
+
+  const usageCount = getUsageCount(userId, windowStart);
+  const userData = getExtIdLimitStmt.get(userId);
+
+  if(!userData) {
+    throw new UserNotFoundError(userId);
+  }
+
+  return {
+    id: userId,
+    externalUserId: userData.external_user_id,
+    usageCount,
+    dailyRequestLimit: userData.daily_request_limit,
+    remaining: userData.daily_request_limit - usageCount,
+  }
+}
+
 export {
   createEndUser,
   checkUserExists,
   createUserApiKey,
   revokeUser,
   getUserSummary,
+  getUserUsageSummary
 }
 
 // errors

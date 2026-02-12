@@ -19,10 +19,10 @@ function getUsageCount(endUserId: string, windowStart: number): number {
     return result?.count ?? 0;
 }
 
-function incrementUsageCount(endUserId: string, windowStart: number){
-    const result = incrementUsageStmt.run(endUserId, windowStart);
-    return result.changes > 0;
-}
+// function incrementUsageCount(endUserId: string, windowStart: number){
+//     const result = incrementUsageStmt.run(endUserId, windowStart);
+//     return result.changes > 0;
+// } deprecated
 
 function tryConsumeUsage(
     endUserId: string,
@@ -48,6 +48,5 @@ function tryConsumeUsage(
 
 export {
     getUsageCount,
-    incrementUsageCount,
     tryConsumeUsage,
 }

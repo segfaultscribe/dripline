@@ -6,7 +6,8 @@ import {
   UserNotFoundError,
   createUserApiKey,
   revokeUser,
-  getUserSummary
+  getUserSummary,
+  getUserUsageSummary
 } from "./service";
 
 import { adminAuth } from "./middlewares/auth";
@@ -15,6 +16,7 @@ import { adminRateLimiter } from "./middlewares/rateLimiter";
 const adminRoutes = new Elysia({ prefix: '/admin' })
   .use(adminAuth)
   .use(adminRateLimiter)
+
   .post(
     '/users',
     async ({ body, set }) => {
@@ -44,6 +46,7 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
       })
     }
   )
+
   .post(
     '/users/:id/keys',
     async ({ params: { id }, set, body }) => {
@@ -73,6 +76,7 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
       })
     }
   )
+
   .post(
     '/users/:id/revoke',
     async ({ params: { id }, set }) => {
@@ -95,6 +99,7 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
       })
     }
   )
+
   .get(
     '/users/:id',
     async ({ params: { id }, set }) => {
@@ -106,7 +111,30 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
           set.status = 404;
           return { error: 'User not found' };
         }
-        console.error(`Error retrieving user summary: ${err}`);
+        console.error(`Error retrieving user: ${err}`);
+        set.status = 500;
+        return { error: 'Internal server error' };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String({ minLength: 1 })
+      }),
+    }
+  )
+
+  .get(
+    '/users/:id/usage',
+    ({params: {id}, set}) => {
+      try{
+        const usage = getUserUsageSummary(id);
+        return usage;
+      } catch (err: unknown) {
+        if (err instanceof UserNotFoundError) {
+          set.status = 404;
+          return { error: 'User not found' };
+        }
+        console.error(`Error retrieving usage summary: ${err}`);
         set.status = 500;
         return { error: 'Internal server error' };
       }
