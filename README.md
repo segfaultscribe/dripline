@@ -1,4 +1,4 @@
-**Dripline: API Usage Analytics & Hard Limits for LLM-Powered SaaS**
+# Dripline: API Usage Analytics & Hard Limits for LLM-Powered SaaS
 
 > NOTE: Dripline has been recently upgraded from a generic gateway to a gateway focused on usage enforcement for AI SaaS
 

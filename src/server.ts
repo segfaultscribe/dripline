@@ -7,6 +7,7 @@ import { logger } from "./middleware/logger";
 import { auth } from "./middleware/auth";
 import { gatewayRateLimiter } from "./middleware/rateLimiter";
 import { meter } from "./middleware/metering";
+import { usageEnforcement } from "./middleware/enforcement";
 import { t } from 'elysia';
 import { handleUsage } from "./handlers";
 import { migrate } from "./db/migrate";
@@ -18,10 +19,13 @@ const INTERNAL_ROUTES = new Set([
 ]);
 
 export function startServer() {
+  
   use(logger);
   use(auth);
   use(gatewayRateLimiter);
   use(meter);
+  use(usageEnforcement);
+
   migrate();
   const app = new Elysia()
     .onRequest(({ request }) => {

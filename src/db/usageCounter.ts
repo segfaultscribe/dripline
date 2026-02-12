@@ -24,7 +24,30 @@ function incrementUsageCount(endUserId: string, windowStart: number){
     return result.changes > 0;
 }
 
+function tryConsumeUsage(
+    endUserId: string,
+    windowStart: number, 
+    limit: number,
+): boolean {
+
+    const tx = db.transaction(() => {
+        const row = getUsageStmt.get(endUserId, windowStart);
+        const current = row?.count ?? 0;
+        
+        if(current + 1 > limit) {
+            return false;
+        }
+
+        incrementUsageStmt.run(endUserId, windowStart);
+        return true;
+    });
+
+    return tx();
+}
+
+
 export {
     getUsageCount,
     incrementUsageCount,
+    tryConsumeUsage,
 }
