@@ -43,6 +43,18 @@ const getDailyRequestLimitStmt = db.prepare<{ daily_request_limit: number }, [st
   `
 )
 
+const getUserCountStmt = db.prepare<{count: number}, []>(
+  `
+  SELECT count(*) AS count FROM end_users
+  `
+)
+
+const getAcitveUsersStmt = db.prepare<{count: number}, []>(
+  `
+  SELECT count(*) AS count FROM end_users WHERE status='active'
+  `
+)
+
 function createEndUser(input: endUserCreationSchema): { id: string } {
   const { external_user_id, daily_request_limit } = input;
   const now = Date.now();
@@ -127,10 +139,22 @@ function getDailyRequestLimit(endUserId: string): number | undefined {
   return row?.daily_request_limit ?? undefined
 }
 
+function getTotalUserCount(){
+  const result = getUserCountStmt.get()
+  return result?.count ?? 0;
+}
+
+function getActiveUserCount(){
+  const result = getAcitveUsersStmt.get()
+  return result?.count ?? 0;
+}
+
 export {
   createEndUser,
   getEndUserById,
   getEndUserByExternalId,
   revokeEndUser,
-  getDailyRequestLimit
+  getDailyRequestLimit,
+  getTotalUserCount,
+  getActiveUserCount,
 }

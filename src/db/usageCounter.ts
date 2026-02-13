@@ -1,4 +1,5 @@
 import db from ".";
+import { getCurrentWindowStart } from "../middleware/helpers/window";
 
 const getUsageStmt = db.prepare<{count: number}, [string, number]>(
     `
@@ -11,6 +12,12 @@ const incrementUsageStmt = db.prepare(
     INSERT INTO usage_counters (end_user_id, window_start, count) VALUES (?, ?, 1)
     ON CONFLICT(end_user_id, window_start)
     DO UPDATE SET count = count + 1;
+    `
+)
+
+const totalUsageTodayStmt = db.prepare<{count: number}, [number]>(
+    `
+    SELECT count(*) FROM usage_counters where window_start=?
     `
 )
 
@@ -45,8 +52,15 @@ function tryConsumeUsage(
     return tx();
 }
 
+function getTotalUsageToday(){
+    const windowStart = getCurrentWindowStart();
+    const result = totalUsageTodayStmt.get(windowStart);
+    return result?.count ?? 0;
+}
+
 
 export {
     getUsageCount,
     tryConsumeUsage,
+    getTotalUsageToday,
 }

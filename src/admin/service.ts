@@ -2,8 +2,8 @@ import db from "../db"
 import { randomUUID } from "crypto";
 import { createApiKeyEntry, getAllAPIKeys, updateAPIKey } from "../keys/store";
 import { getCurrentWindowStart } from "../middleware/helpers/window";
-import { getUsageCount } from "../db/usageCounter";
-import { getDailyRequestLimit } from "../db/endUsers";
+import { getTotalUsageToday, getUsageCount } from "../db/usageCounter";
+import { getActiveUserCount, getDailyRequestLimit, getTotalUserCount } from "../db/endUsers";
 
 class DuplicateExternalUserError extends Error {
   constructor(externalUserId: string) {
@@ -176,7 +176,19 @@ async function getUserUsageSummary(userId: string){
     externalUserId: userData.external_user_id,
     usageCount,
     dailyRequestLimit: userData.daily_request_limit,
-    remaining: userData.daily_request_limit - usageCount,
+    remaining: Math.max(0, userData.daily_request_limit - usageCount),
+  }
+}
+
+async function getUsageSummary(){
+  const totalUsers = getTotalUserCount();
+  const totalActiveUsers = getActiveUserCount();
+  const totalUsageToday = getTotalUsageToday();
+
+  return {
+    totalUsers,
+    totalActiveUsers,
+    totalUsageToday
   }
 }
 
@@ -186,7 +198,8 @@ export {
   createUserApiKey,
   revokeUser,
   getUserSummary,
-  getUserUsageSummary
+  getUserUsageSummary,
+  getUsageSummary
 }
 
 // errors

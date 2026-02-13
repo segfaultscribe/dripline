@@ -7,7 +7,8 @@ import {
   createUserApiKey,
   revokeUser,
   getUserSummary,
-  getUserUsageSummary
+  getUserUsageSummary,
+  getUsageSummary
 } from "./service";
 
 import { adminAuth } from "./middlewares/auth";
@@ -143,6 +144,20 @@ const adminRoutes = new Elysia({ prefix: '/admin' })
       params: t.Object({
         id: t.String({ minLength: 1 })
       }),
+    }
+  )
+
+  .get(
+    '/usage/summary',
+    ({set}) => {
+      try{
+        const result = getUsageSummary()
+        return result;
+      } catch(err: unknown) {
+        console.error(`Error retrieving usage summary: ${err}`);
+        set.status = 500;
+        return { error: 'Internal server error' };
+      }
     }
   )
 
