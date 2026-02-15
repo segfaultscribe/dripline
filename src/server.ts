@@ -19,8 +19,23 @@ const INTERNAL_ROUTES = new Set([
 ]);
 
 export function startServer() {
+  // final setup
+  /*
+    // 1️⃣ Infra
+    const db = createDatabase(config.DB_PATH)
+
+    // 2️⃣ Migrations
+    migrate(db)
+
+    // 3️⃣ Repositories
+    const apiKeyRepo = createApiKeyRepository(db)
+
+    // 4️⃣ Middleware (Injected)
+    const auth = createAuthMiddleware({ apiKeyRepo })
+
+   */
   migrate();
-  
+
   use(logger);
   use(auth);
   use(gatewayRateLimiter);

@@ -34,12 +34,12 @@ interface endUserCreationSchema {
 }
 
 interface EndUser {
-  id: number;
+  id: string;
   external_user_id: string;
   status: "active" | "revoked";
   daily_request_limit: number;
-  created_at: string;
-  revoked_at: string | null;
+  created_at: number;
+  revoked_at: number;
 }
 
 // --------------- TYPES --------------------
