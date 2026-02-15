@@ -15,6 +15,7 @@ interface RequestContext {
   error?: string;
   rateLimited?: boolean;
   latencyMs?: number;
+  upstreamStatus?: number;
 }
 
 interface UsageRecord {

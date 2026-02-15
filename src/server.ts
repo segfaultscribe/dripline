@@ -19,6 +19,7 @@ const INTERNAL_ROUTES = new Set([
 ]);
 
 export function startServer() {
+  migrate();
   
   use(logger);
   use(auth);
@@ -26,7 +27,7 @@ export function startServer() {
   use(meter);
   use(usageEnforcement);
 
-  migrate();
+  
   const app = new Elysia()
     .onRequest(({ request }) => {
       const pathname = new URL(request.url).pathname;

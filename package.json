@@ -10,7 +10,8 @@
     "typescript": "^5"
   },
   "scripts": {
-    "start": "bun run src/index.ts"
+    "start": "bun run src/index.ts",
+    "upstream": "bun run src/test/upstreamServer.ts"
   },
   "dependencies": {
     "elysia": "^1.4.19"

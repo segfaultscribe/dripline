@@ -7,7 +7,7 @@ export type ApiKeyRow = {
   status: 'active' | 'revoked';
 };
 
-const getApiKeyByHashStmt = db.query(`
+const getApiKeyByHashStmt = db.prepare(`
   SELECT id, end_user_id, status
   FROM api_keys
   WHERE key_hash = ?
