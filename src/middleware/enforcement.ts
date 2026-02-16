@@ -1,14 +1,14 @@
 import type { RequestContext } from "../types";
 import { getCurrentWindowStart } from "./helpers/window"; 
-import type { UsageCounterRepository } from "../db/usageCounter";
-import type { EndUserRepository } from "../db/endUsers";
+import type { UsageCounterRepository } from "../db/repositories/usageCounter";
+import type { EndUserRepository } from "../db/repositories/endUsers";
 
 type EnforcementDeps = {
     usageCounterRepo: UsageCounterRepository;
     endUserRepo: EndUserRepository;
 }
 
-function EnforcementMiddleware(
+export function EnforcementMiddleware(
     { usageCounterRepo, endUserRepo } : EnforcementDeps
 ){ 
     return function usageEnforcement(ctx: RequestContext){

@@ -1,4 +1,4 @@
-import type { endUserCreationSchema, EndUser } from "../types";
+import type { endUserCreationSchema, EndUser } from "../../types";
 import { randomUUID } from "crypto";
 import type { Database } from "bun:sqlite";
 
@@ -10,28 +10,42 @@ type EndUserPartial = {
   revoked_at: number,
 }
 
+export interface UserSummary {
+  external_user_id: string;
+  status: string;
+  daily_request_limit: number;
+  revoked_at: number;
+}
+
+interface UsageDataDuo {
+  external_user_id: string;
+  daily_request_limit: number;
+}
+
 export type EndUserRepository = {
-  createEndUser(input: endUserCreationSchema): { id: string },
-  getEndUserById(id: string): EndUserPartial | undefined,
-  getEndUserByExternalId(id: string): EndUserPartial | undefined,
-  revokeEndUser(id: string): {id: string},
-  getDailyRequestLimit(endUserId: string): number | undefined,
-  getTotalUserCount(): number,
-  getActiveUserCount(): number,
+  createEndUser(input: endUserCreationSchema): { id: string } | null;
+  getEndUserById(id: string): EndUserPartial | undefined;
+  getEndUserByExternalId(id: string): EndUserPartial | undefined;
+  revokeEndUser(id: string): {id: string} | null;
+  getDailyRequestLimit(endUserId: string): number | undefined;
+  getTotalUserCount(): number;
+  getActiveUserCount(): number;
+  getUserInfo(endUserId: string): UserSummary | null;
+  getExternalUserIdAndDailyLimit(endUserId: string): UsageDataDuo | null; // try to rafactor functions using this
 };
 
-function endUserRepository(db: Database){
-  const insertEndUser = db.prepare(
-    `
+function createEndUserRepository(db: Database){
+  const insertEndUser = db.prepare(`
       INSERT INTO end_users (
         id,
         external_user_id,
         status,
         daily_request_limit,
         created_at
-      ) VALUES (?, ?, ?, ?, ?)
-    `
-  );
+      )
+      VALUES (?, ?, 'active', ?, ?)
+      ON CONFLICT(external_user_id) DO NOTHING
+  `)
 
   const retrieveEndUserById = db.prepare(
     `
@@ -69,31 +83,31 @@ function endUserRepository(db: Database){
     `
   )
 
+  const getUserInfoStmt = db.prepare<UserSummary, [string]>(`
+    SELECT external_user_id, daily_request_limit, status, revoked_at FROM end_users WHERE id=?
+  `)
+
+  const getExtIdLimitStmt = db.prepare<UsageDataDuo, [string]>(`
+    SELECT external_user_id, daily_request_limit FROM end_users WHERE id=?
+  `)
+
   return {
-    createEndUser(input: endUserCreationSchema): { id: string } {
+    createEndUser(input: endUserCreationSchema): { id: string } | null {
       const { external_user_id, daily_request_limit } = input;
       const now = Date.now();
       const id = randomUUID();
-      try {
-        insertEndUser.run(
-          id,
-          external_user_id,
-          'active',
-          daily_request_limit,
-          now,
-        )
-        return { id }
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          console.error('Failed to create end user:', err.message);
-          throw new Error('Could not create end user');
-        }
-        throw err;
-      }
+
+      const result = insertEndUser.run(
+        id,
+        external_user_id,
+        'active',
+        daily_request_limit,
+        now,
+      )
+      return result.changes !== 0 ? { id } : null;
     },
 
     getEndUserById(id: string): EndUserPartial | undefined {
-      try {
         const userRow = retrieveEndUserById.get(id) as EndUser | undefined;
         if (!userRow) return undefined;
         return {
@@ -103,13 +117,6 @@ function endUserRepository(db: Database){
           daily_request_limit: userRow.daily_request_limit,
           revoked_at: userRow.revoked_at,
         }
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          console.error('Failed to retrieve user:', err.message);
-          throw new Error('Database error');
-        }
-        throw err;
-      }
     },
 
     getEndUserByExternalId(id: string): EndUserPartial | undefined {
@@ -132,20 +139,9 @@ function endUserRepository(db: Database){
       }
     },
 
-    revokeEndUser(id: string): {id: string} {
-      try {
-        revokeUser.run(
-          Date.now(),
-          id
-        )
-        return { id }
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          console.error('Failed to revoke end user:', err.message);
-          throw new Error('Could not revoke end user');
-        }
-        throw err;
-      }
+    revokeEndUser(id: string): {id: string} | null {
+      const result = revokeUser.run(Date.now(), id)
+      return result.changes!== 0 ? { id } : null;
     },
 
     getDailyRequestLimit(endUserId: string): number | undefined {
@@ -162,9 +158,19 @@ function endUserRepository(db: Database){
       const result = getAcitveUsersStmt.get()
       return result?.count ?? 0;
     },
+
+    getUserInfo(endUserId: string): UserSummary | null {
+      const row = getUserInfoStmt.get(endUserId);
+      return row ?? null;
+    },
+
+    getExternalUserIdAndDailyLimit(endUserId: string): UsageDataDuo | null {
+      const row = getExtIdLimitStmt.get(endUserId);
+      return row ?? null;
+    }
   }
 }
 
 export {
-  endUserRepository
+  createEndUserRepository,
 }

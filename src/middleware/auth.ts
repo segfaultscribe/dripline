@@ -1,6 +1,6 @@
 import type { RequestContext } from "../types";
 import { hashApiKey } from "../keys/hash";
-import type { ApiKeyRepository } from "../db/apikey";
+import type { ApiKeyRepository } from "../db/repositories/apikey";
 
 type AuthDeps = {
   apiKeyRepo: ApiKeyRepository;

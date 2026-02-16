@@ -1,6 +1,6 @@
-import db from "./index.ts";
+import type { Database } from "bun:sqlite";
 
-export function migrate() {
+export function migrate(db: Database) {
   try {
     // NOTE: During early development, schemas are defined via CREATE TABLE.
     // In later phases, changes should be applied via ALTER TABLE migrations

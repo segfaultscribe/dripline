@@ -1,25 +1,15 @@
-import db from "../db";
+import type { ApiKeyRepository } from "../db/repositories/apikey.ts";
 import { generateKey } from "./generate.ts"
 import { hashApiKey } from "./hash.ts";
 import { randomUUID } from "crypto";
+import type { ApiKeyRow } from "../types.ts";
 
-const checkAPIKeyExists = db.prepare(
-  `
-  SELECT 1 FROM api_keys WHERE id=? LIMIT 1
-  `
-)
+// const checkAPIKeyExists = db.prepare(
+//   `
+//   SELECT 1 FROM api_keys WHERE id=? LIMIT 1
+//   `
+// )
 
-const updateAPIKeyStmt = db.prepare(
-  `
-  UPDATE api_keys SET status=? WHERE end_user_id=?
-  `
-)
-
-const getAllAPIKeysStmt = db.prepare(
-  `
-  SELECT id FROM api_keys WHERE end_user_id=?
-  `
-)
 
 type ApiKeyInput = {
   name?: string;
@@ -33,52 +23,36 @@ type ApiKeyResult = {
   createdAt: number;
 }
 
-function createApiKeyEntry(
-  input: ApiKeyInput
-): ApiKeyResult {
-  const rawKey = generateKey();
-  const hashedKey = hashApiKey(rawKey);
+type ApiKeyDeps = {
+  apiKeyRepo: ApiKeyRepository
+}
 
-  const id = randomUUID();
-  const end_user_id = input.end_user_id;
-  const createdAt = Date.now();
+export type ApiKeyService = {
+  createApiKeyEntry(input: ApiKeyInput): ApiKeyResult;
+}
 
-  db.run(
-    `
-      INSERT INTO api_keys (
+export function createApiKeyService(
+  { apiKeyRepo }: ApiKeyDeps
+){
+  return {
+    createApiKeyEntry(
+      input: ApiKeyInput
+    ): ApiKeyResult {
+      const rawKey = generateKey();
+      const hashedKey = hashApiKey(rawKey);
+      const name = input.name || undefined;
+      const id = randomUUID();
+      const end_user_id = input.end_user_id;
+      const createdAt = Date.now();
+      const result = apiKeyRepo.createApiKeyEntry({id, end_user_id, hashedKey, name, createdAt})
+      // NOTE: key_hash is UNIQUE — collision is extremely unlikely,
+      // but this may be wrapped in a retry loop in production.
+      return {
         id,
         end_user_id,
-        key_hash,
-        name,
-        status,
-        created_at
-      ) VALUES (?, ?, ?, 'active', ?)
-    `,
-    [id, end_user_id, hashedKey, input.name ?? null, createdAt]
-  )
-  // NOTE: key_hash is UNIQUE — collision is extremely unlikely,
-  // but this may be wrapped in a retry loop in production.
-
-
-  return {
-    id,
-    end_user_id,
-    rawKey,
-    createdAt,
+        rawKey,
+        createdAt,
+      }
+    }
   }
-}
-
-//NOTE: this function returns only the API Key ids
-function getAllAPIKeys(external_user_id: string) {
-  return getAllAPIKeysStmt.all(external_user_id);
-}
-
-function updateAPIKey(id: string, status: string) {
-  return updateAPIKeyStmt.run(status, id);
-}
-
-export {
-  createApiKeyEntry,
-  getAllAPIKeys,
-  updateAPIKey,
 }

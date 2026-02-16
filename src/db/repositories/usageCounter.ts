@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { getCurrentWindowStart } from "../middleware/helpers/window";
+import { getCurrentWindowStart } from "../../middleware/helpers/window";
 
 export type UsageCounterRepository = {
     getUsageCount(endUserId: string, windowStart: number): number;
@@ -8,7 +8,7 @@ export type UsageCounterRepository = {
 
 }
 
-function usageCounterRepository(db: Database){
+function createUsageCounterRepository(db: Database){
     const getUsageStmt = db.prepare<{count: number}, [string, number]>(`
         SELECT count FROM usage_counters WHERE end_user_id=? AND window_start=?
     `)
@@ -65,5 +65,5 @@ function usageCounterRepository(db: Database){
 // } deprecated
 
 export {
-    usageCounterRepository,
+    createUsageCounterRepository,
 }

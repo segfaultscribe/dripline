@@ -4,13 +4,20 @@ import type { RequestContext } from "./types";
 import { executePipeline, use } from "./pipeline/middleware";
 import { randomUUID } from "crypto";
 import { logger } from "./middleware/logger";
-import { auth } from "./middleware/auth";
+import { AuthMiddleware } from "./middleware/auth";
 import { gatewayRateLimiter } from "./middleware/rateLimiter";
 import { meter } from "./middleware/metering";
-import { usageEnforcement } from "./middleware/enforcement";
+import { EnforcementMiddleware } from "./middleware/enforcement";
 import { t } from 'elysia';
 import { handleUsage } from "./handlers";
 import { migrate } from "./db/migrate";
+import { createDatabase } from "./db";
+import { createApiKeyRepository } from "./db/repositories/apikey";
+import { createEndUserRepository } from "./db/repositories/endUsers";
+import { createUsageCounterRepository } from "./db/repositories/usageCounter";
+import { createApiKeyService } from "./keys/store";
+import createAdminServices from "./admin/ServiceFactory";
+import { createAdminRoutes } from "./admin/routes";
 
 const INTERNAL_ROUTES = new Set([
   '/usage',
@@ -19,30 +26,31 @@ const INTERNAL_ROUTES = new Set([
 ]);
 
 export function startServer() {
-  // final setup
-  /*
-    // 1️⃣ Infra
-    const db = createDatabase(config.DB_PATH)
+  // infra
+  const db = createDatabase("data/gateway.db");
+  // migrations
+  migrate(db);
+  // repository init
+  const apiKeyRepo = createApiKeyRepository(db);
+  const endUserRepo = createEndUserRepository(db);
+  const usageCounterRepo = createUsageCounterRepository(db);
+  // middleware injection
+  const auth = AuthMiddleware({ apiKeyRepo });
+  const enforcement = EnforcementMiddleware({ usageCounterRepo, endUserRepo });
 
-    // 2️⃣ Migrations
-    migrate(db)
-
-    // 3️⃣ Repositories
-    const apiKeyRepo = createApiKeyRepository(db)
-
-    // 4️⃣ Middleware (Injected)
-    const auth = createAuthMiddleware({ apiKeyRepo })
-
-   */
-  migrate();
-
+  const apiKeyService = createApiKeyService({apiKeyRepo});
+  const adminService = createAdminServices(
+    {endUserRepo, usageCounterRepo, apiKeyRepo},
+    {apiKeyService}
+  );
+  const adminRoutes = createAdminRoutes(adminService);
+  // create pipeline
   use(logger);
   use(auth);
   use(gatewayRateLimiter);
   use(meter);
-  use(usageEnforcement);
-
-  
+  use(enforcement);
+  // SERVER
   const app = new Elysia()
     .onRequest(({ request }) => {
       const pathname = new URL(request.url).pathname;
@@ -61,6 +69,9 @@ export function startServer() {
       };
       return executePipeline(ctx);
     })
+
+    .use(adminRoutes)
+
     .get(
       '/usage',
       handleUsage,
@@ -75,6 +86,7 @@ export function startServer() {
         })
       }
     )
+    
     .listen(config.PORT)
 
   console.log(`Gateway active on port ${app.server?.port}`);

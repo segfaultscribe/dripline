@@ -47,6 +47,17 @@ type Middleware = (ctx: RequestContext) => Promise<Response | undefined> | Respo
 
 type Handler = (ctx: Context) => {}
 
+type ApiKeyRow = {
+  id: string;
+  end_user_id: string;
+  key_hash: string;
+  name: string | null;
+  status: 'active' | 'revoked';
+  created_at: number;
+  revoked_at: number | null;
+};
+
+
 // --------------- EXPORTS --------------------
 
 // Interfaces
@@ -60,5 +71,6 @@ export type {
 // types
 export type {
   Middleware,
-  Handler
+  Handler,
+  ApiKeyRow
 }
