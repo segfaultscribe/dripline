@@ -26,6 +26,7 @@ const INTERNAL_ROUTES = new Set([
 ]);
 
 export function startServer() {
+  // COMPOSITE ROOT
   // infra
   const db = createDatabase("data/gateway.db");
   // migrations
@@ -37,7 +38,7 @@ export function startServer() {
   // middleware injection
   const auth = AuthMiddleware({ apiKeyRepo });
   const enforcement = EnforcementMiddleware({ usageCounterRepo, endUserRepo });
-
+  // create service layer 
   const apiKeyService = createApiKeyService({apiKeyRepo});
   const adminService = createAdminServices(
     {endUserRepo, usageCounterRepo, apiKeyRepo},

@@ -52,7 +52,7 @@ function createApiKeyRepository(db: Database): ApiKeyRepository {
       name,
       status,
       created_at
-    ) VALUES (?, ?, ?, 'active', ?)
+    ) VALUES (?, ?, ?, ?, 'active', ?)
   `);
 
   const getAllAPIKeysStmt = db.prepare<ApiKeyIdRow, [string]>(`
