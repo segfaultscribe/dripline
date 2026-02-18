@@ -83,3 +83,5 @@ Bun · TypeScript · Elysia · SQLite (Postgres-ready)
 
 ## Development Status
 Core enforcement and proxy layer operational.
+
+_This readme was indeed edited by AI to be more compact. Detailed readme with system diagram and file system will be available once all development phases are complete!_
