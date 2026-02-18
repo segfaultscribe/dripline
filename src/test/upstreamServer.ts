@@ -64,6 +64,8 @@ app.get("/ai/stream", () => {
     },
   });
 
+  
+
   return new Response(stream, {
     headers: {
       "Content-Type": "text/plain",
@@ -71,6 +73,21 @@ app.get("/ai/stream", () => {
   });
 });
 
-app.listen(4000);
+  app.get("/healthz", () => {
+    return {
+      status: "ok",
+      uptime: process.uptime(),
+      timestamp: Date.now(),
+    };
+  });
 
-console.log("🧪 Upstream test server running at http://localhost:4000");
+
+const server = app.listen(4000);
+
+// console.log("Upstream test server running at http://localhost:4000");
+
+if (server) {
+  console.log(`Upstream running at http://localhost:4000`);
+} else {
+  console.error("❌ Failed to start upstream server");
+}

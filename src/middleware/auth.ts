@@ -17,6 +17,7 @@ export function AuthMiddleware(
     if (authHeader?.toLowerCase().startsWith("bearer ")) {
       rawKey = authHeader.slice(7).trim();
     }
+    console.log(`raw key: ${rawKey}`);
 
     if (!rawKey) {
       const apiKeyHeader = req.headers.get("x-api-key");
@@ -35,7 +36,7 @@ export function AuthMiddleware(
     try {
       const hash = hashApiKey(rawKey);
       const entry = apiKeyRepo.getApiKeyByHash(hash);
-
+      console.log(`hashedKey: ${entry?.id}`)
       if (!entry || entry.status !== "active") {
         console.warn(`[REQ ${requestId}] 401 Unauthorized`);
         return new Response(

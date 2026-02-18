@@ -29,6 +29,7 @@ function hasBody(method: string) {
 export async function proxyRequest(ctx: RequestContext): Promise<Response> {
   const url = new URL(ctx.req.url);
   const upstreamUrl = buildUpstremUrl(url);
+  console.log(`Upstream URL: ${upstreamUrl}`)
 
   const signal = AbortSignal.timeout(config.UPSTREAM_TIMEOUT_MS);
   try {
