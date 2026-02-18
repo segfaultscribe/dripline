@@ -12,7 +12,7 @@ const adminRateLimiter = new Elysia()
 
     if (!allowed) {
       set.status = 429;
-      return { error: "Admin rate limit exceeded" };
+      return { error: "Admin rate limit exceeded\n" };
     }
   });
 

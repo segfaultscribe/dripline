@@ -84,7 +84,6 @@ function createAdminServices(
     }
     return {
         createEndUser(externalUserId: string, dailyRequestLimit: number) {
-          const id = randomUUID();
           const createdAt = Date.now();
         
           const queryResult = endUserRepo.createEndUser({
@@ -92,9 +91,9 @@ function createAdminServices(
             daily_request_limit: dailyRequestLimit
           })
           if (queryResult === null) throw new DuplicateExternalUserError(externalUserId);
-        
+          const userId = queryResult.id;
           return {
-            id,
+            id: userId,
             externalUserId,
             dailyRequestLimit,
             status: "active" as const,

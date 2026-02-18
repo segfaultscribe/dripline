@@ -23,6 +23,12 @@ const INTERNAL_ROUTES = new Set([
   '/usage',
   '/healthz',
   '/metrics',
+  '/admin/users',
+  '/admin/users/:id/keys',
+  '/admin/users/:id/revoke',
+  '/admin/users/:id',
+  '/admin/users/:id/usage',
+  '/admin/usage/summary'
 ]);
 
 export function startServer() {
@@ -52,28 +58,10 @@ export function startServer() {
   use(meter);
   use(enforcement);
   // SERVER
-  const app = new Elysia()
-    .onRequest(({ request }) => {
-      const pathname = new URL(request.url).pathname;
+  const app = new Elysia();
+    app.use(adminRoutes);
 
-      if (INTERNAL_ROUTES.has(pathname)) {
-        // Internal route: bypass gateway pipeline
-        return;
-      }
-
-      const ctx: RequestContext = {
-        requestId: randomUUID(), // optimize using monotonic ULID later
-        startTime: Date.now(),
-        req: request,
-        isTerminated: false,
-        isMetered: false,
-      };
-      return executePipeline(ctx);
-    })
-
-    .use(adminRoutes)
-
-    .get(
+    app.get(
       '/usage',
       handleUsage,
       {
@@ -87,6 +75,28 @@ export function startServer() {
         })
       }
     )
+
+    app.all('*', ({ request }) => {
+      const pathname = new URL(request.url).pathname;
+
+      // if (INTERNAL_ROUTES.has(pathname)) {
+      //   // Internal route: bypass gateway pipeline
+      //   return;
+      // }
+
+      const ctx: RequestContext = {
+        requestId: randomUUID(), // optimize using monotonic ULID later
+        startTime: Date.now(),
+        req: request,
+        isTerminated: false,
+        isMetered: false,
+      };
+      return executePipeline(ctx);
+    })
+
+    
+
+    
     
     .listen(config.PORT)
 

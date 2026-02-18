@@ -47,11 +47,9 @@ function createEndUserRepository(db: Database){
       ON CONFLICT(external_user_id) DO NOTHING
   `)
 
-  const retrieveEndUserById = db.prepare(
-    `
+  const retrieveEndUserById = db.prepare(`
       SELECT * FROM end_users WHERE id = ?
-    `
-  );
+  `);
 
   const retrieveEndUserByExternalId = db.prepare(
     `
@@ -100,7 +98,6 @@ function createEndUserRepository(db: Database){
       const result = insertEndUser.run(
         id,
         external_user_id,
-        'active',
         daily_request_limit,
         now,
       )

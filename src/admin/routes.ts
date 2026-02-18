@@ -30,7 +30,7 @@ export function createAdminRoutes (adminService: AdminService){
           }
           console.error('Unexpected error creating User:', err);
           set.status = 500;
-          return { error: 'Internal server error' };
+          return { error: 'Internal server error\n' };
         }
       },
       {
