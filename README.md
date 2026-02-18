@@ -1,164 +1,85 @@
-# Dripline: API Usage Analytics & Hard Limits for LLM-Powered SaaS
+# Dripline: Reverse-Proxy Usage Enforcement for AI SaaS
 
-> NOTE: Dripline has been recently upgraded from a generic gateway to a gateway focused on usage enforcement for AI SaaS
+Dripline is an opinionated reverse-proxy gateway built for AI-powered SaaS products that incur usage-based LLM costs. It enforces per-user hard limits before upstream execution, preventing surprise bills and abuse.
 
-Dripline is a reverse-proxy API gateway designed specifically for AI-powered SaaS applications that incur usage-based LLM costs. It sits in front of cost-incurring endpoints, attributes usage per end user, and enforces hard limits before upstream calls are made — preventing surprise bills, abuse, and runaway usage.
+It is not a generic API gateway, it is a cost-control layer.
 
-This is not a generic API gateway. It is an opinionated cost-control layer for teams shipping AI products.
+## Problem
 
-## Why dripline Exists
+LLM APIs are usage-priced and unpredictable. A single abusive user or integration bug can generate unexpected costs. Traditional gateways optimize for throughput and latency, not deterministic cost enforcement.
 
-LLM APIs are expensive and usage scales unpredictably. A single abusive user, infinite loop, or integration bug can cause sudden cost spikes.
+Dripline ensures that no user exceeds their configured daily quota before a cost-incurring endpoint is executed.
 
-Traditional API gateways focus on:
-* Latency
-* Throughput
-* Generic rate limiting
+## Architecture
 
-Dripline focuses on:
-* **Per-user usage attribution**
-* **Deterministic daily usage limits**
-* **Blocking requests before cost is incurred**
-* **Clear operational control for founders**
+Dripline runs as a reverse proxy with strict separation between:
 
-The primary goal is cost predictability.
+#### Data Plane
 
-## Architecture Overview
+- Authenticates API keys
+- Resolves end-user identity
+- Detects metered endpoints
+- Enforces daily usage limits
+- Proxies requests upstream
+- Records usage analytics
 
-dripline is built as a reverse proxy with a strict middleware pipeline and a clear separation between:
+#### Control Plane
 
-* **Data plane** – handles customer traffic and enforcement
-* **Control plane** – admin APIs for user and key management
+- Create and revoke end users
+- Issue API keys
+- Inspect per-user usage
+- View system-wide usage summary
 
-### Request Flow
+#### Request Lifecycle
 
-1. Request enters the gateway.
-2. A `RequestContext` is created.
-3. Authentication resolves the API key to an internal end-user identity.
-4. Metering classifies whether the endpoint is cost-incurring.
-5. Usage enforcement checks persisted counters against configured limits.
-6. If allowed, the request is proxied upstream.
-7. Usage counters are finalized and persisted.
+Request enters gateway ->
+API key resolves to internal end-user identity ->
+Metered endpoint detection ->
+Atomic usage check + increment (daily window) ->
+If allowed -> proxied upstream ->
+If limit exceeded -> 429 returned before upstream call
 
-If a limit would be exceeded, the gateway returns a 429 response and the upstream is never called.
+**Enforcement happens before LLM execution.**
 
-This guarantees cost protection before LLM execution.
+## Core Capabilities (MVP)
 
-## Core Features (MVP)
+- Per-end-user usage attribution
+- Deterministic daily hard limits (UTC window)
+- Atomic DB-backed enforcement
+- Reverse proxy with timeout handling
+- Upstream error attribution
+- Restart-safe persistence
+- Admin control plane
 
-### Per-End-User Identity
+Usage is currently request-based (1 request = 1 unit). Token-based metering is planned.
 
-* Each API key maps to an internal end user.
-* Limits are enforced per end user, not globally.
-* Revoking a user revokes all associated keys.
+## Key Design Decisions
 
-### Metered Endpoint Protection
+#### Reverse Proxy Enforcement
+Limits are enforced pre-execution to guarantee cost control.
 
-* Only explicitly configured path prefixes (e.g. `/ai/*`) are considered cost-incurring.
-* Non-metered endpoints pass through normally.
-* Metering is explicit and deterministic.
+#### Fail-Closed Model
+If enforcement cannot complete, the request is blocked.
 
-### Daily Hard Usage Limits
-
-* Fixed UTC daily window.
-* One usage unit per metered request (v1).
-* Synchronous enforcement before proxying.
-* Persistent counters survive restarts.
-
-### Usage Persistence
-
-* Composite primary key `(end_user_id, window_start)`
-* Atomic upsert-based increments
-* Restart-safe and deterministic
-
-### Admin Control Plane
-
-* Create end users
-* Issue API keys
-* Revoke users (hard stop)
-* Inspect configured limits
-
-## Design Decisions & Tradeoffs
-
-### Reverse Proxy Model
-
-Enforcement must happen before LLM execution. SDK-based tracking or log-based analysis is reactive and unsafe for cost control. A reverse proxy guarantees pre-execution enforcement.
-
-### Synchronous Enforcement
-
-Authentication and limit checks are synchronous. This slightly increases latency but guarantees deterministic cost protection. Availability is intentionally traded for correctness.
-
-### Internal vs External User IDs
-
-External customer user IDs are stored for mapping only. All enforcement and counters use internal UUIDs to ensure referential integrity and system independence.
-
-### Fixed Daily Windows (MVP)
-
-A simple UTC daily window was chosen over rolling or sliding windows for:
-
-* Simplicity
-* Predictability
-* Lower operational complexity
-
-This can evolve to rolling or weighted limits later.
-
-### No Token Counting (Yet)
-
-V1 meters per request, not per token. This avoids deep LLM parsing and keeps enforcement fast. Token-weighted usage can be introduced later without breaking the core model.
-
-### No Dynamic Route Configuration (Yet)
-
-Metered endpoints are currently path-prefix based and configured at runtime. Future versions will allow admin-configurable metered routes loaded into memory without per-request DB lookups.
-
-## Failure & Safety Model
-
-* If the database is unavailable → requests fail closed.
-* If enforcement fails → request is blocked.
-* If the process crashes before proxy → no cost incurred.
-* If it crashes after proxy → acceptable undercount (rare edge case).
-
+#### Synchronous Limit Check
 Correctness is prioritized over availability.
+
+#### Internal Identity Model
+All enforcement uses internal UUIDs. External IDs are mapped but never trusted for enforcement.
+
+#### Fixed Daily Windows (MVP)
+Chosen for predictability and operational simplicity.
 
 ## What This Is Not
 
-dripline is not:
-
-* A Kong or NGINX replacement
-* A multi-protocol API manager
-* An enterprise gateway with plugins and SSO
-* A billing system
-
-It is a focused cost-control gateway for AI SaaS teams.
-
-## MVP Goals
-
-The MVP guarantees:
-
-* A user cannot exceed their configured daily request limit.
-* Over-limit requests are blocked before LLM execution.
-* Usage persists across restarts.
-* Founders can control and revoke users immediately.
-
-Future work includes:
-
-* Token-based metering
-* Configurable metered routes
-* Aggregated usage analytics endpoints
-* Async write optimization
-* Redis-backed distributed enforcement
-
+- a generic API manager
+- an enterprise plugin gateway
+- a billing engine
+- a token-parsing middleware (yet)
 
 ## Tech Stack
 
-* Bun
-* TypeScript
-* Elysia
-* SQLite (Postgres-ready)
-* Structured middleware pipeline
-* Reverse proxy forwarding
+Bun · TypeScript · Elysia · SQLite (Postgres-ready)
 
-## Project Status
-
-MVP in active development.
-Core enforcement engine implemented.
-Focus: deterministic cost protection for AI-powered SaaS.
+## Development Status
+Core enforcement and proxy layer operational.
