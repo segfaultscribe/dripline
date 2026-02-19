@@ -1,12 +1,12 @@
-# Dripline: Reverse-Proxy Usage Enforcement for AI SaaS
+# Dripline: Reverse-Proxy Usage Enforcement for SaaS Applications
 
-Dripline is an opinionated reverse-proxy gateway built for AI-powered SaaS products that incur usage-based LLM costs. It enforces per-user hard limits before upstream execution, preventing surprise bills and abuse.
+Dripline is an opinionated reverse-proxy gateway built for SaaS products that incur usage-based costs like having an LLM endpoint. It enforces per-user hard limits before upstream execution, preventing surprise bills and abuse.
 
 It is not a generic API gateway, it is a cost-control layer.
 
 ## Problem
 
-LLM APIs are usage-priced and unpredictable. A single abusive user or integration bug can generate unexpected costs. Traditional gateways optimize for throughput and latency, not deterministic cost enforcement.
+Endpoints that host services like llms can be usage-priced and unpredictable. A single abusive user or integration bug can generate unexpected costs. Traditional gateways optimize for throughput and latency, not deterministic cost enforcement.
 
 Dripline ensures that no user exceeds their configured daily quota before a cost-incurring endpoint is executed.
 
