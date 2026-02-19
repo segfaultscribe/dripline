@@ -16,6 +16,7 @@ interface RequestContext {
   rateLimited?: boolean;
   latencyMs?: number;
   upstreamStatus?: number;
+  upstreamOutcome?: UpstreamOutcome;
 }
 
 interface UsageRecord {
@@ -26,6 +27,9 @@ interface UsageRecord {
   status: number;
   timestamp: number;
   latencyMs: number;
+  isMetered: boolean;
+  upstreamStatus: number;
+  upstreamOutcome: UpstreamOutcome;
 }
 
 interface endUserCreationSchema {
@@ -57,6 +61,13 @@ type ApiKeyRow = {
   revoked_at: number | null;
 };
 
+type UpstreamOutcome =
+  | "success"
+  | "upstream_4xx"
+  | "upstream_5xx"
+  | "upstream_timeout"
+  | "upstream_network_error"
+  | "gateway_blocked";
 
 // --------------- EXPORTS --------------------
 
@@ -72,5 +83,6 @@ export type {
 export type {
   Middleware,
   Handler,
-  ApiKeyRow
+  ApiKeyRow,
+  UpstreamOutcome
 }

@@ -5,22 +5,42 @@ function buildUpstremUrl(url: URL){
   return `${config.UPSTREAM_BASE_URL}${url.pathname}${url.search}`;
 }
 
+const HOP_BY_HOP_HEADERS = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+  "host",
+  "content-length"
+]);
+
+const INTERNAL_HEADERS = new Set([
+  "authorization",   // gateway auth
+  "x-admin-key"
+]);
+
 function filterHeaders(headers: Headers): Headers {
   const newHeaders = new Headers();
 
-  for(const [key, value] of headers.entries()){
+  for (const [key, value] of headers.entries()) {
     const lower = key.toLowerCase();
 
-    if (
-      lower === "authorization" ||
-      lower === "x-admin-key" ||
-      lower === "host"
-    ) continue;
+    if (HOP_BY_HOP_HEADERS.has(lower)) continue;
+    if (INTERNAL_HEADERS.has(lower)) continue;
 
     newHeaders.set(key, value);
   }
+
+  // Optional: identify gateway
+  newHeaders.set("x-forwarded-by", "dripline");
+
   return newHeaders;
 }
+
 
 function hasBody(method: string) {
   return !["GET", "HEAD"].includes(method.toUpperCase());
@@ -45,18 +65,32 @@ export async function proxyRequest(ctx: RequestContext): Promise<Response> {
 
     ctx.upstreamStatus = upstreamResponse.status;
 
+    if (upstreamResponse.status >= 500) {
+      ctx.upstreamOutcome = "upstream_5xx";
+    } else if (upstreamResponse.status >= 400) {
+      ctx.upstreamOutcome = "upstream_4xx";
+    } else {
+      ctx.upstreamOutcome = "success";
+    }
+
+
     return new Response(upstreamResponse.body, {
       status: upstreamResponse.status,
       headers: upstreamResponse.headers,
     });
 
-  } catch (err:unknown) {
-    if (signal.aborted) {
-      return new Response(
-        JSON.stringify({ error: "Upstream timeout" }),
-        { status: 504 }
-      );
+  } catch (err: unknown) {
+    if(err instanceof Error){
+      if (err.name === "TimeoutError" || err.name === "AbortError") {
+        ctx.upstreamOutcome = "upstream_timeout"
+        return new Response(
+          JSON.stringify({ error: "Upstream timeout" }),
+          { status: 504 }
+        );
+      }
     }
+
+    ctx.upstreamOutcome = "upstream_network_error";
   
     return new Response(
         JSON.stringify({ error: "Upstream request failed" }),

@@ -10,7 +10,7 @@ async function meter(ctx: RequestContext){
 
     ctx.isMetered = isMetered;
 
-    console.log(`[REQ ${ctx.requestId}] metered=${isMetered} path=${path}`);
+    // console.log(`[REQ ${ctx.requestId}] metered=${isMetered} path=${path}`);
     return undefined;
 }
 

@@ -3,7 +3,7 @@ import Elysia from "elysia";
 import type { RequestContext } from "./types";
 import { executePipeline, use } from "./pipeline/middleware";
 import { randomUUID } from "crypto";
-import { logger } from "./middleware/logger";
+// import { logger } from "./middleware/logger";
 import { AuthMiddleware } from "./middleware/auth";
 import { gatewayRateLimiter } from "./middleware/rateLimiter";
 import { meter } from "./middleware/metering";
@@ -52,7 +52,7 @@ export function startServer() {
   );
   const adminRoutes = createAdminRoutes(adminService);
   // create pipeline
-  use(logger);
+  // use(logger);
   use(auth);
   use(gatewayRateLimiter);
   use(meter);

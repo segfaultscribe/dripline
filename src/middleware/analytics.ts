@@ -11,15 +11,18 @@ export async function analytics(ctx: RequestContext, res: Response): Promise<voi
     path: new URL(ctx.req.url).pathname,
     status: res.status,
     timestamp: now,
-    latencyMs: now - ctx.startTime
+    latencyMs: now - ctx.startTime,
+    upstreamOutcome: ctx.upstreamOutcome ?? "gateway_blocked",
+    upstreamStatus: ctx.upstreamStatus ?? 500,
+    isMetered: ctx.isMetered
   };
 
   usage.push(record);
 
   // TEMP log until dashboard exists
-  console.log(
-    `[REQ ${ctx.requestId}] Analytics: ${record.method} ${record.path} → ${record.status} (${record.latencyMs}ms)`
-  );
+  // console.log(
+  //   `[REQ ${ctx.requestId}] Analytics: ${record.method} ${record.path} → ${record.status} (${record.latencyMs}ms)\n DETAILED ANALYTICS: ${JSON.stringify(record)} \n`
+  // );
 }
 
 export { usage }; // needed later for /usage endpoint
