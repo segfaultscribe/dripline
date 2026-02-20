@@ -57,6 +57,21 @@ export function startServer() {
   use(gatewayRateLimiter);
   use(meter);
   use(enforcement);
+  // config check
+  function validateConfig() {
+    if (!config.UPSTREAM_BASE_URL) {
+      throw new Error("UPSTREAM_BASE_URL is required");
+    }
+
+    if (!Bun.env.ADMIN_KEY) {
+      throw new Error("ADMIN_KEY is required");
+    }
+
+    if (!config.UPSTREAM_TIMEOUT_MS) {
+      throw new Error("UPSTREAM_TIMEOUT_MS is required");
+    }
+  }
+
   // SERVER
   const app = new Elysia();
     app.use(adminRoutes);
@@ -76,6 +91,18 @@ export function startServer() {
       }
     )
 
+    app.get("/healthz", () => {
+      try {
+        db.prepare("SELECT 1").get();
+        return { status: "ok" };
+      } catch {
+        return new Response(
+          JSON.stringify({ status: "unhealthy" }),
+          { status: 500 }
+        );
+      }
+    });
+
     app.all('*', ({ request }) => {
       const pathname = new URL(request.url).pathname;
 
@@ -94,12 +121,8 @@ export function startServer() {
       return executePipeline(ctx);
     })
 
-    
+    const server = app.listen(config.PORT);
 
-    
-    
-    .listen(config.PORT)
-
-  console.log(`Gateway active on port ${app.server?.port}`);
+    return server;
 }
 
