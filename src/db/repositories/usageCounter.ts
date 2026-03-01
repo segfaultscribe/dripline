@@ -3,7 +3,7 @@ import { getCurrentWindowStart } from "../../middleware/helpers/window";
 
 export type UsageCounterRepository = {
     getUsageCount(endUserId: string, windowStart: number): number;
-    tryConsumeUsage(endUserId: string, windowStart: number, limit: number): boolean;
+    tryConsumeUsage(endUserId: string, windowStart: number, limit: number, delta:number): boolean;
     getTotalUsageToday(): number;
 
 }
@@ -14,10 +14,11 @@ function createUsageCounterRepository(db: Database){
     `)
 
     const incrementUsageStmt = db.prepare(`
-        INSERT INTO usage_counters (end_user_id, window_start, count) VALUES (?, ?, 1)
+        INSERT INTO usage_counters (end_user_id, window_start, count) 
+        VALUES (?, ?, ?)
         ON CONFLICT(end_user_id, window_start)
-        DO UPDATE SET count = count + 1;
-    `)
+        DO UPDATE SET count = count + excluded.count;
+    `);
 
     const totalUsageTodayStmt = db.prepare<{count: number}, [number]>(`
         SELECT count(*) FROM usage_counters where window_start=?
@@ -34,17 +35,18 @@ function createUsageCounterRepository(db: Database){
             endUserId: string,
             windowStart: number, 
             limit: number,
+            delta: number,
         ): boolean {
 
             const tx = db.transaction(() => {
                 const row = getUsageStmt.get(endUserId, windowStart);
                 const current = row?.count ?? 0;
                 
-                if(current + 1 > limit) {
+                if(current + delta > limit) {
                     return false;
                 }
 
-                incrementUsageStmt.run(endUserId, windowStart);
+                incrementUsageStmt.run(endUserId, windowStart, delta);
                 return true;
             });
 

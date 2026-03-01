@@ -34,7 +34,12 @@ export function EnforcementMiddleware(
             );
         }  
 
-        const allowed = usageCounterRepo.tryConsumeUsage(endUserId, windowStart, dailyRequestLimit)
+        const allowed = usageCounterRepo.tryConsumeUsage(
+            endUserId, 
+            windowStart, 
+            dailyRequestLimit,
+            ctx.usageDelta ?? 0,
+        )
         if(!allowed){
             return new Response(
                 JSON.stringify({ error: "Usage limit exceeded"}),
