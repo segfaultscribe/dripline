@@ -46,7 +46,21 @@ interface EndUser {
   revoked_at: number;
 }
 
+export interface MeteredRoute {
+  path_pattern: string;
+  methods: HttpMethod[];
+  cost_per_request: number;
+  matcher: RegExp; // We compile this once at startup
+}
+
+export interface DriplineConfig {
+  upstream_url: string;
+  metered_routes: MeteredRoute[];
+}
+
 // --------------- TYPES --------------------
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS";
+
 type Middleware = (ctx: RequestContext) => Promise<Response | undefined> | Response | undefined;
 
 type Handler = (ctx: Context) => {}

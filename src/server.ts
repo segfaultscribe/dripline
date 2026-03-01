@@ -18,6 +18,7 @@ import { createUsageCounterRepository } from "./db/repositories/usageCounter";
 import { createApiKeyService } from "./keys/store";
 import createAdminServices from "./admin/ServiceFactory";
 import { createAdminRoutes } from "./admin/routes";
+import { loadConfig } from "./configLoader";
 
 const INTERNAL_ROUTES = new Set([
   '/usage',
@@ -34,6 +35,7 @@ const INTERNAL_ROUTES = new Set([
 export function startServer() {
   // COMPOSITE ROOT
   // infra
+  const enforcementConfig = loadConfig();
   const db = createDatabase("data/gateway.db");
   // migrations
   migrate(db);

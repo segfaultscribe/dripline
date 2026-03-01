@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/yaml": "^1.9.7"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -14,6 +15,7 @@
     "upstream": "bun run src/test/upstreamServer.ts"
   },
   "dependencies": {
-    "elysia": "^1.4.19"
+    "elysia": "^1.4.19",
+    "yaml": "^2.8.2"
   }
 }

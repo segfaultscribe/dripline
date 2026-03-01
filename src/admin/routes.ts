@@ -13,7 +13,7 @@ export function createAdminRoutes (adminService: AdminService){
 
     .post(
       '/users',
-      async ({ body, set }) => {
+       ({ body, set }) => {
         const {
           externalUserId,
           dailyRequestLimit,
@@ -43,7 +43,7 @@ export function createAdminRoutes (adminService: AdminService){
 
     .post(
       '/users/:id/keys',
-      async ({ params: { id }, set, body }) => {
+       ({ params: { id }, set, body }) => {
         // verify the user with the id exists
         const keyName = body.name;
         try {
@@ -73,7 +73,7 @@ export function createAdminRoutes (adminService: AdminService){
 
     .post(
       '/users/:id/revoke',
-      async ({ params: { id }, set }) => {
+       ({ params: { id }, set }) => {
         try {
           const revokeResult = adminService.revokeUser(id);
           return { success: true, data: revokeResult };
@@ -96,7 +96,7 @@ export function createAdminRoutes (adminService: AdminService){
 
     .get(
       '/users/:id',
-      async ({ params: { id }, set }) => {
+       ({ params: { id }, set }) => {
         try {
           const result = adminService.getUserSummary(id);
           return result;

@@ -1,0 +1,20 @@
+# dripline.yaml
+upstream_url: "https://api.openai.com"
+
+metered_routes:
+  - path_pattern: "/v1/chat/completions"
+    methods: 
+      - "POST"
+    cost_per_request: 1
+
+  - path_pattern: "/v1/images/generations"
+    methods: 
+      - "POST"
+    cost_per_request: 5
+
+  # Wildcard example for paths that might be metered in the future
+  # but currently cost 0, or just to track traffic volume.
+  - path_pattern: "/v1/models*"
+    methods: 
+      - "GET"
+    cost_per_request: 0
